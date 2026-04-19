@@ -1,0 +1,140 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Tests: Full",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Fast (no slow)",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:fast"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Slow only",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:slow"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Question q2,q3",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q2q3"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q1",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q1"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q2",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q2"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q3",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q3"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q4",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q4"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q5",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q5"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
+        }
+    ]
+}

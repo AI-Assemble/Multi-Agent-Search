@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Multi-Agent-Search"
+version = "0.1.0"
+description = "Pacman Multi-agent Search Project"
+readme = "docs/problems/en/overview.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8.4.2"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+markers = ["slow: marks longer-running autograder checks"]

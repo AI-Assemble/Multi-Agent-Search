@@ -1,0 +1,63 @@
+version: '3'
+
+vars:
+  PYTHON_BIN_RAW: '{{default "python" .PYTHON_BIN}}'
+  PYTHON_BIN: '{{quote (replace "\\" "/" .PYTHON_BIN_RAW)}}'
+
+tasks:
+  test:
+    desc: Run full pytest suite
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:fast:
+    desc: Run fast pytest suite (excluding slow)
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -m "not slow" -vv -s; else {{.PYTHON_BIN}} -m pytest -m "not slow" -vv -s; fi'
+
+  test:slow:
+    desc: Run slow pytest suite
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -m slow -vv -s; else {{.PYTHON_BIN}} -m pytest -m slow -vv -s; fi'
+
+  test:q1:
+    desc: Run only question q1
+    env:
+      PACMAN_QUESTIONS: q1
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:q2:
+    desc: Run only question q2
+    env:
+      PACMAN_QUESTIONS: q2
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:q3:
+    desc: Run only question q3
+    env:
+      PACMAN_QUESTIONS: q3
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:q4:
+    desc: Run only question q4
+    env:
+      PACMAN_QUESTIONS: q4
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:q5:
+    desc: Run only question q5
+    env:
+      PACMAN_QUESTIONS: q5
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  test:q2q3:
+    desc: Run only questions q2 and q3
+    env:
+      PACMAN_QUESTIONS: q2,q3
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
