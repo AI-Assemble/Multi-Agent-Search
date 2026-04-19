@@ -8,7 +8,8 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-APP_DIR = REPO_ROOT / "app"
+APP_DIR = REPO_ROOT / "src" / "core"
+TESTS_DIR = REPO_ROOT / "tests"
 
 
 def _should_run(question: str) -> bool:
@@ -34,17 +35,21 @@ def test_autograder_question(question: str) -> None:
     if not _should_run(question):
         pytest.skip(f"{question} skipped by PACMAN_QUESTIONS filter")
 
+    pythonpath = str(TESTS_DIR) + os.pathsep + str(APP_DIR)
+    env = {**os.environ, "PYTHONPATH": pythonpath}
+
     cmd = [
         sys.executable,
         "-m",
-        "testing.autograder",
+        "autograder",
         "-q",
         question,
         "--no-graphics",
     ]
     completed = subprocess.run(
         cmd,
-        cwd=APP_DIR,
+        cwd=str(APP_DIR),
+        env=env,
         capture_output=True,
         text=True,
         timeout=900,

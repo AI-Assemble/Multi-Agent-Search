@@ -2,6 +2,21 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Run: Pacman Launcher",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "run:pacman"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
             "label": "Tests: Full",
             "type": "process",
             "command": "task",

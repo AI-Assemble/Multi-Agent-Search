@@ -45,11 +45,8 @@ from model.game import Directions
 from model.game import Actions
 from model.util import nearestPoint
 from model.util import manhattanDistance
-import model.util as util
 import model.layout as layout
 import sys
-import types
-import time
 import random
 import os
 import importlib
@@ -231,7 +228,7 @@ class GameState:
         """
         Generates a new state by copying information from its predecessor.
         """
-        if prevState != None:  # Initial state
+        if prevState is not None:  # Initial state
             self.data = GameStateData(prevState.data)
         else:
             self.data = GameStateData()
@@ -489,7 +486,7 @@ def default(str):
 
 
 def parseAgentArgs(str):
-    if str == None:
+    if str is None:
         return {}
     pieces = str.split(',')
     opts = {}
@@ -567,11 +564,11 @@ def readCommand(argv):
 
     # Choose a layout
     args['layout'] = layout.getLayout(options.layout)
-    if args['layout'] == None:
+    if args['layout'] is None:
         raise Exception("The layout " + options.layout + " cannot be found")
 
     # Choose a Pacman agent
-    noKeyboard = options.gameToReplay == None and (
+    noKeyboard = options.gameToReplay is None and (
         options.textGraphics or options.quietGraphics)
     pacmanType = loadAgent(options.pacman, noKeyboard)
     agentOpts = parseAgentArgs(options.agentArgs)
@@ -609,7 +606,7 @@ def readCommand(argv):
     args['timeout'] = options.timeout
 
     # Special case: recorded games don't use the runGames method or args structure
-    if options.gameToReplay != None:
+    if options.gameToReplay is not None:
         print('Replaying recorded game %s.' % options.gameToReplay)
         import pickle
         f = open(options.gameToReplay)
@@ -698,10 +695,9 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
             import pickle
             fname = ('recorded-game-%d' % (i + 1)) + \
                 '-'.join([str(t) for t in time.localtime()[1:6]])
-            f = file(fname, 'w')
-            components = {'layout': layout, 'actions': game.moveHistory}
-            pickle.dump(components, f)
-            f.close()
+            with open(fname, 'wb') as f:
+                components = {'layout': layout, 'actions': game.moveHistory}
+                pickle.dump(components, f)
 
     if (numGames-numTraining) > 0:
         scores = [game.state.getScore() for game in games]

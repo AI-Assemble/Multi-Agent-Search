@@ -4,19 +4,32 @@ This file defines the working rules for this repository.
 
 ## 1) Assignment Scope
 
-- Main coding task for the course assignment is in app/agents/multiAgents.py.
+- Main coding task for the course assignment is in src/core/agents/multiAgents.py.
 - Keep provided class and function names unchanged to stay compatible with the autograder.
 - Do not modify autograder internals unless you are intentionally changing test infrastructure.
+- File naming convention: snake_case for all new Python files (e.g. my_module.py, not myModule.py).
 
 ### Architecture Layout
 
-- app/model contains world/state model code.
-- app/view contains graphics/text rendering code.
-- app/controller contains game-loop/control entry code.
-- app/agents contains Pacman and Ghost agent logic.
-- app/testing contains autograder and grading internals.
-- app/config contains project parameters used by the autograder.
-- Do not add compatibility wrappers back into app/*.py root.
+- src/core/model: world/state model code.
+- src/core/view: graphics/text rendering code.
+- src/core/controller: game-loop/control entry code.
+- src/core/agents: Pacman and Ghost agent logic.
+- src/core/config: project parameters used by the autograder.
+- src/app/: interactive CLI launcher, split into focused modules:
+  - colors.py: ANSI constants and paint helper.
+  - keys.py: raw keyboard reader and screen clear.
+  - fs.py: filesystem helpers (layouts, banner, log paths).
+  - menu.py: interactive TUI menus and setup wizard.
+  - process.py: subprocess utilities (build command, stop process, append log).
+  - metrics.py: score/result extraction from stdout and CSV row management.
+  - batch.py: batch orchestration, live dashboard, and game attempt runner.
+  - __main__.py: entry point, invoke with `PYTHONPATH=src python -m app`.
+- tests/: autograder engine + test data together.
+  - autograder.py, grading.py, testClasses.py, testParser.py, multiagentTestClasses.py: engine.
+  - make_pytest.py: pytest bridge.
+  - q1/ … q5/: .test and .solution files side by side.
+- Do not add compatibility wrappers back into src/core/*.py root.
 
 ## 2) Testing Rules
 
@@ -60,7 +73,9 @@ If a specific interpreter is needed:
 ## 5) VS Code Integration Rules
 
 - VS Code tasks are bindings to Taskfile targets in .vscode/tasks.json.
-- Launch profiles in .vscode/launch.json are available for per-question pytest runs.
+- .vscode/tasks.json includes a "Run: Pacman Launcher" task that delegates to task run:pacman.
+- Launch profiles in .vscode/launch.json are available for per-question pytest runs and the launcher.
+- The "Launcher" debug profile uses module: app with PYTHONPATH set to the workspace src/ directory.
 - Keep task and launch entries aligned with Taskfile target names.
 
 ## 6) How To Add A New Question
@@ -70,11 +85,11 @@ When a new question is introduced (example: q6), apply this checklist:
 1. Tests and assets
    - Add relevant test case folder under tests/q6.
    - Put .test files under tests/q6.
-   - Put .solution files under solutions/q6.
-   - Ensure autograder can run q6 from app.
+   - Put .solution files under tests/q6 (alongside .test files).
+   - Ensure autograder can run q6 from src/core.
 
 2. Pytest bridge
-   - Update tests/test_autograder_questions.py:
+   - Update tests/make_pytest.py:
      - Add q6 into parametrized question list.
      - Mark as slow only if needed.
 

@@ -14,15 +14,22 @@ This repository is set up as a complete Python project with:
 
 ## Project Structure
 
-* `app/`: Pacman source code reorganized with MVC + Agent-Based architecture
-* `app/model/`, `app/view/`, `app/controller/`: MVC layers
-* `app/agents/`: agent implementations (`Reflex`, `Minimax`, `AlphaBeta`, `Expectimax`, etc.)
-* `app/testing/`: autograder and grading internals
-* `app/config/`: project parameter configuration for autograder
-* `tests/`: assignment `.test` files and pytest bridge
-* `solutions/`: assignment `.solution` files (split from tests)
+* `src/`: all Python source packages
+  * `src/core/`: Pacman game source — MVC + Agent-Based architecture
+    * `model/`, `view/`, `controller/`: MVC layers
+    * `agents/`: agent implementations (`Reflex`, `Minimax`, `AlphaBeta`, `Expectimax`, etc.)
+    * `config/`: project parameter configuration for autograder
+  * `src/app/`: interactive CLI launcher, split into focused modules:
+    * `colors.py`, `keys.py`, `fs.py`, `menu.py`, `process.py`, `metrics.py`, `batch.py`
+    * `__main__.py`: entry point — invoke with `PYTHONPATH=src python -m app`
+* `tests/`: all test assets in one place
+  * `autograder.py`, `grading.py`, `testClasses.py`, `testParser.py`, `multiagentTestClasses.py`: autograder engine (moved from `src/core/`)
+  * `make_pytest.py`: pytest bridge that drives the autograder
+  * `q1/` … `q5/`: per-question `.test` and `.solution` files side by side
+* `layouts/`: Pacman map layout files
 - `Taskfile.yml`: reusable local/CI task definitions
-- `.vscode/tasks.json`: VS Code bindings to Taskfile tasks
+- `.vscode/tasks.json`: VS Code task bindings — includes `Run: Pacman Launcher` and all test targets
+- `.vscode/launch.json`: VS Code debug profiles — `Launcher` runs `python -m app` with `PYTHONPATH=src`
 - `.github/workflows/q1.yml` ... `.github/workflows/q5.yml`: per-question CI workflows
 
 ## Local Setup (.venv)
@@ -115,12 +122,16 @@ Add `PACMAN_PARALLEL` if you want Taskfile to pass `--parallel` automatically.
 Direct module-mode examples (without Taskfile):
 
 ```bash
-PYTHONPATH=app .venv/Scripts/python.exe -m controller.pacman -p ReflexAgent -l mediumClassic -k 2
+PYTHONPATH=src .venv/Scripts/python.exe -m app --python-bin .venv/Scripts/python.exe
 ```
 
 ```bash
-cd app
-../.venv/Scripts/python.exe -m testing.autograder -q q2 --no-graphics
+PYTHONPATH=src/core .venv/Scripts/python.exe -m controller.pacman -p ReflexAgent -l mediumClassic -k 2
+```
+
+```bash
+# Run autograder directly (tests/ dir contains both engine and test data)
+PYTHONPATH="tests;src/core" .venv/Scripts/python.exe -m autograder -q q2 --no-graphics
 ```
 
 Note: Taskfile is configured to try `uv run` first for Python commands, and automatically fallback to regular Python when `uv` is unavailable.

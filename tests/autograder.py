@@ -13,7 +13,7 @@
 
 
 # imports from python standard library
-import testing.grading as grading
+import grading
 import importlib.util
 import optparse
 import os
@@ -23,6 +23,8 @@ import sys
 import config.projectParams as projectParams
 import random
 random.seed(0)
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
 try:
     from controller.pacman import GameState
 except:
@@ -36,7 +38,7 @@ def readCommand(argv):
                         muteOutput=False, printTestCase=False, noGraphics=False)
     parser.add_option('--test-directory',
                       dest='testRoot',
-                      default='../tests',
+                      default=_HERE,
                       help='Root test directory which contains subdirectories corresponding to each question')
     parser.add_option('--student-code',
                       dest='studentCode',
@@ -48,7 +50,7 @@ def readCommand(argv):
                       help='Root directory containing the student and testClass code')
     parser.add_option('--test-case-code',
                       dest='testCaseCode',
-                      default=projectParams.PROJECT_TEST_CLASSES,
+                      default=os.path.join(_HERE, 'multiagentTestClasses.py'),
                       help='class containing testClass classes for this project')
     parser.add_option('--generate-solutions',
                       dest='generateSolutions',
@@ -201,8 +203,7 @@ def printTest(testDict, solutionDict):
 
 
 def getSolutionRoot(testRoot):
-    test_root_abs = os.path.abspath(testRoot)
-    return os.path.join(os.path.dirname(test_root_abs), 'solutions')
+    return os.path.abspath(testRoot)
 
 
 def getSolutionPath(testRoot, question, test_name):
@@ -210,8 +211,8 @@ def getSolutionPath(testRoot, question, test_name):
 
 
 def runTest(testName, moduleDict, testRoot, printTestCase=False, display=None):
-    import testing.testParser as testParser
-    import testing.testClasses as testClasses
+    import testParser
+    import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
@@ -272,8 +273,8 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
              printTestCase=False, questionToGrade=None, display=None):
     # imports of testbench code.  note that the testClasses import must follow
     # the import of student code due to dependencies
-    import testing.testParser as testParser
-    import testing.testClasses as testClasses
+    import testParser
+    import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])

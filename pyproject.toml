@@ -17,5 +17,5 @@ dev = ["pytest>=8.4.2"]
 minversion = "7.0"
 addopts = "-ra"
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
+python_files = ["test_*.py", "*_test.py", "make_pytest.py"]
 markers = ["slow: marks longer-running autograder checks"]
