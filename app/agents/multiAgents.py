@@ -49,7 +49,8 @@ class ReflexAgent(Agent):
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
-        "Add more of your code here if you want to"
+        # TODO Q1: Improve the reflex agent evaluation if you want a stronger
+        #          local decision rule for this question.
 
         return legalMoves[chosenIndex]
 
@@ -75,7 +76,7 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
+        # TODO Q1: Implement the reflex evaluation function for this question.
         return successorGameState.getScore()
 
 def scoreEvaluationFunction(currentGameState: GameState):
@@ -136,7 +137,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        "*** YOUR CODE HERE ***"
+        # TODO Q2: Implement minimax search and return the best action.
         util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
@@ -148,7 +149,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
+        # TODO Q3: Implement alpha-beta pruning on top of minimax search.
         util.raiseNotDefined()
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
@@ -163,7 +164,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         All ghosts should be modeled as choosing uniformly at random from their
         legal moves.
         """
-        "*** YOUR CODE HERE ***"
+        # TODO Q4: Implement expectimax with uniformly random ghost actions.
         util.raiseNotDefined()
 
 def betterEvaluationFunction(currentGameState: GameState):
@@ -173,7 +174,7 @@ def betterEvaluationFunction(currentGameState: GameState):
 
     DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
+    # TODO Q5: Implement the improved state evaluation function for this question.
     util.raiseNotDefined()
 
 # Abbreviation
