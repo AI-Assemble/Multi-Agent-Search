@@ -20,24 +20,24 @@
 #     state.getScore()
 #           used by multiAgents.scoreEvaluationFunction, which is the default
 #
-import testClasses
+import testing.testClasses as testClasses
 import json
 
 from collections import defaultdict
 from pprint import PrettyPrinter
 pp = PrettyPrinter()
 
-from game import Agent
-from pacman import GameState
-from ghostAgents import RandomGhost, DirectionalGhost
+from model.game import Agent
+from controller.pacman import GameState
+from agents.ghostAgents import RandomGhost, DirectionalGhost
 import random
 import math
 import traceback
 import sys
 import os
-import layout
-import pacman
-import autograder
+import model.layout as layout
+import controller.pacman as pacman
+import testing.autograder as autograder
 # import grading
 
 VERBOSE = False
@@ -464,7 +464,7 @@ class GraphGameTreeTest(testClasses.TestCase):
 
 
 import time
-from util import TimeoutFunction
+from model.util import TimeoutFunction
 
 
 class EvalAgentTest(testClasses.TestCase):

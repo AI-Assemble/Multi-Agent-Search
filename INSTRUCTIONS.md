@@ -4,9 +4,19 @@ This file defines the working rules for this repository.
 
 ## 1) Assignment Scope
 
-- Main coding task for the course assignment is in app/multiAgents.py.
+- Main coding task for the course assignment is in app/agents/multiAgents.py.
 - Keep provided class and function names unchanged to stay compatible with the autograder.
 - Do not modify autograder internals unless you are intentionally changing test infrastructure.
+
+### Architecture Layout
+
+- app/model contains world/state model code.
+- app/view contains graphics/text rendering code.
+- app/controller contains game-loop/control entry code.
+- app/agents contains Pacman and Ghost agent logic.
+- app/testing contains autograder and grading internals.
+- app/config contains project parameters used by the autograder.
+- Do not add compatibility wrappers back into app/*.py root.
 
 ## 2) Testing Rules
 
@@ -58,7 +68,9 @@ If a specific interpreter is needed:
 When a new question is introduced (example: q6), apply this checklist:
 
 1. Tests and assets
-   - Add relevant test case folder under app/tests/q6.
+   - Add relevant test case folder under tests/q6.
+   - Put .test files under tests/q6.
+   - Put .solution files under solutions/q6.
    - Ensure autograder can run q6 from app.
 
 2. Pytest bridge

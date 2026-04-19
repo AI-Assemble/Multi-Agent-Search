@@ -12,12 +12,12 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from game import Agent
-from game import Actions
-from game import Directions
+from model.game import Agent
+from model.game import Actions
+from model.game import Directions
 import random
-from util import manhattanDistance
-import util
+from model.util import manhattanDistance
+import model.util as util
 
 
 class GhostAgent(Agent):

@@ -36,7 +36,8 @@ def test_autograder_question(question: str) -> None:
 
     cmd = [
         sys.executable,
-        "autograder.py",
+        "-m",
+        "testing.autograder",
         "-q",
         question,
         "--no-graphics",

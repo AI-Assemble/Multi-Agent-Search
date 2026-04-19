@@ -12,7 +12,7 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-STUDENT_CODE_DEFAULT = 'multiAgents.py'
-PROJECT_TEST_CLASSES = 'multiagentTestClasses.py'
+STUDENT_CODE_DEFAULT = 'agents/multiAgents.py'
+PROJECT_TEST_CLASSES = 'testing/multiagentTestClasses.py'
 PROJECT_NAME = 'Project 2: Multiagent search'
 BONUS_PIC = False

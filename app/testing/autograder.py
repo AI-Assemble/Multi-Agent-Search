@@ -13,18 +13,18 @@
 
 
 # imports from python standard library
-import grading
+import testing.grading as grading
 import importlib.util
 import optparse
 import os
 import pprint
 import re
 import sys
-import projectParams
+import config.projectParams as projectParams
 import random
 random.seed(0)
 try:
-    from pacman import GameState
+    from controller.pacman import GameState
 except:
     pass
 
@@ -36,7 +36,7 @@ def readCommand(argv):
                         muteOutput=False, printTestCase=False, noGraphics=False)
     parser.add_option('--test-directory',
                       dest='testRoot',
-                      default='tests',
+                      default='../tests',
                       help='Root test directory which contains subdirectories corresponding to each question')
     parser.add_option('--student-code',
                       dest='studentCode',
@@ -200,17 +200,32 @@ def printTest(testDict, solutionDict):
         print("   |", line)
 
 
-def runTest(testName, moduleDict, printTestCase=False, display=None):
-    import testParser
-    import testClasses
+def getSolutionRoot(testRoot):
+    test_root_abs = os.path.abspath(testRoot)
+    return os.path.join(os.path.dirname(test_root_abs), 'solutions')
+
+
+def getSolutionPath(testRoot, question, test_name):
+    return os.path.join(getSolutionRoot(testRoot), question, '%s.solution' % test_name)
+
+
+def runTest(testName, moduleDict, testRoot, printTestCase=False, display=None):
+    import testing.testParser as testParser
+    import testing.testClasses as testClasses
+    project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
 
-    testDict = testParser.TestParser(testName + ".test").parse()
-    solutionDict = testParser.TestParser(testName + ".solution").parse()
+    test_file = testName + ".test"
+    question = os.path.dirname(testName)
+    test_base = os.path.basename(testName)
+    solution_file = getSolutionPath(testRoot, question, test_base)
+
+    testDict = testParser.TestParser(test_file).parse()
+    solutionDict = testParser.TestParser(solution_file).parse()
     test_out_file = os.path.join('%s.test_output' % testName)
     testDict['test_out_file'] = test_out_file
-    testClass = getattr(projectTestClasses, testDict['class'])
+    testClass = getattr(project_test_classes, testDict['class'])
 
     questionClass = getattr(testClasses, 'Question')
     question = questionClass({'max_points': 0}, display)
@@ -257,8 +272,9 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
              printTestCase=False, questionToGrade=None, display=None):
     # imports of testbench code.  note that the testClasses import must follow
     # the import of student code due to dependencies
-    import testParser
-    import testClasses
+    import testing.testParser as testParser
+    import testing.testClasses as testClasses
+    project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
 
@@ -283,13 +299,13 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
         tests = [re.match(r'(.*)\.test\Z', t).group(1) for t in tests]
         for t in sorted(tests):
             test_file = os.path.join(subdir_path, '%s.test' % t)
-            solution_file = os.path.join(subdir_path, '%s.solution' % t)
+            solution_file = getSolutionPath(testRoot, q, t)
             test_out_file = os.path.join(subdir_path, '%s.test_output' % t)
             testDict = testParser.TestParser(test_file).parse()
             if testDict.get("disabled", "false").lower() == "true":
                 continue
             testDict['test_out_file'] = test_out_file
-            testClass = getattr(projectTestClasses, testDict['class'])
+            testClass = getattr(project_test_classes, testDict['class'])
             testCase = testClass(question, testDict)
 
             def makefun(testCase, solution_file):
@@ -329,11 +345,11 @@ def getDisplay(graphicsByDefault, options=None):
         graphics = False
     if graphics:
         try:
-            import graphicsDisplay
+            import view.graphicsDisplay as graphicsDisplay
             return graphicsDisplay.PacmanGraphics(1, frameTime=.05)
         except ImportError:
             pass
-    import textDisplay
+    import view.textDisplay as textDisplay
     return textDisplay.NullGraphics()
 
 
@@ -353,7 +369,7 @@ if __name__ == '__main__':
         moduleName, os.path.join(options.codeRoot, options.testCaseCode))
 
     if options.runTest != None:
-        runTest(options.runTest, moduleDict, printTestCase=options.printTestCase,
+        runTest(options.runTest, moduleDict, options.testRoot, printTestCase=options.printTestCase,
                 display=getDisplay(True, options))
     else:
         evaluate(options.generateSolutions, options.testRoot, moduleDict,

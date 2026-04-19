@@ -3,6 +3,11 @@ version: '3'
 vars:
   PYTHON_BIN_RAW: '{{default "python" .PYTHON_BIN}}'
   PYTHON_BIN: '{{quote (replace "\\" "/" .PYTHON_BIN_RAW)}}'
+  PACMAN_AGENT: '{{default "" .PACMAN_AGENT}}'
+  PACMAN_LAYOUT: '{{default "" .PACMAN_LAYOUT}}'
+  PACMAN_GHOSTS: '{{default "" .PACMAN_GHOSTS}}'
+  PACMAN_GAMES: '{{default "" .PACMAN_GAMES}}'
+  PACMAN_EXTRA_ARGS: '{{default "" .PACMAN_EXTRA_ARGS}}'
 
 tasks:
   test:
@@ -61,3 +66,8 @@ tasks:
       PACMAN_QUESTIONS: q2,q3
     cmds:
       - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
+  run:pacman:
+    desc: Run Pacman with interactive launcher (or skip with params)
+    cmds:
+      - 'ARGS=""; if [ -n "{{.PACMAN_AGENT}}" ]; then ARGS="$ARGS --agent {{.PACMAN_AGENT}}"; fi; if [ -n "{{.PACMAN_LAYOUT}}" ]; then ARGS="$ARGS --layout {{.PACMAN_LAYOUT}}"; fi; if [ -n "{{.PACMAN_GHOSTS}}" ]; then ARGS="$ARGS --ghosts {{.PACMAN_GHOSTS}}"; fi; if [ -n "{{.PACMAN_GAMES}}" ]; then ARGS="$ARGS --num-games {{.PACMAN_GAMES}}"; fi; if [ -n "{{.PACMAN_EXTRA_ARGS}}" ]; then ARGS="$ARGS {{.PACMAN_EXTRA_ARGS}}"; fi; if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} scripts/pacman_cli_launcher.py --python-bin {{.PYTHON_BIN}} $ARGS; else {{.PYTHON_BIN}} scripts/pacman_cli_launcher.py --python-bin {{.PYTHON_BIN}} $ARGS; fi'

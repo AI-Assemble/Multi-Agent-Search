@@ -39,19 +39,20 @@ code to run a game.  This file is divided into three sections:
 To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
-from game import GameStateData
-from game import Game
-from game import Directions
-from game import Actions
-from util import nearestPoint
-from util import manhattanDistance
-import util
-import layout
+from model.game import GameStateData
+from model.game import Game
+from model.game import Directions
+from model.game import Actions
+from model.util import nearestPoint
+from model.util import manhattanDistance
+import model.util as util
+import model.layout as layout
 import sys
 import types
 import time
 import random
 import os
+import importlib
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -592,14 +593,14 @@ def readCommand(argv):
 
     # Choose a display format
     if options.quietGraphics:
-        import textDisplay
+        import view.textDisplay as textDisplay
         args['display'] = textDisplay.NullGraphics()
     elif options.textGraphics:
-        import textDisplay
+        import view.textDisplay as textDisplay
         textDisplay.SLEEP_TIME = options.frameTime
         args['display'] = textDisplay.PacmanGraphics()
     else:
-        import graphicsDisplay
+        import view.graphicsDisplay as graphicsDisplay
         args['display'] = graphicsDisplay.PacmanGraphics(
             options.zoom, frameTime=options.frameTime)
     args['numGames'] = options.numGames
@@ -624,36 +625,33 @@ def readCommand(argv):
 
 
 def loadAgent(pacman, nographics):
-    # Looks through all pythonPath Directories for the right module,
-    pythonPathStr = os.path.expandvars("$PYTHONPATH")
-    if pythonPathStr.find(';') == -1:
-        pythonPathDirs = pythonPathStr.split(':')
-    else:
-        pythonPathDirs = pythonPathStr.split(';')
-    pythonPathDirs.append('.')
+    # Resolve agent classes from the refactored package layout.
+    app_root = os.path.dirname(os.path.dirname(__file__))
+    search_packages = ['agents', 'controller']
 
-    for moduleDir in pythonPathDirs:
-        if not os.path.isdir(moduleDir):
+    for package in search_packages:
+        package_dir = os.path.join(app_root, package)
+        if not os.path.isdir(package_dir):
             continue
-        moduleNames = [f for f in os.listdir(
-            moduleDir) if f.endswith('gents.py')]
+
+        moduleNames = [f[:-3] for f in os.listdir(package_dir) if f.endswith('gents.py')]
         for modulename in moduleNames:
             try:
-                module = __import__(modulename[:-3])
+                module = importlib.import_module(f'{package}.{modulename}')
             except ImportError:
                 continue
+
             if pacman in dir(module):
-                if nographics and modulename == 'keyboardAgents.py':
-                    raise Exception(
-                        'Using the keyboard requires graphics (not text display)')
+                if nographics and modulename == 'keyboardAgents':
+                    raise Exception('Using the keyboard requires graphics (not text display)')
                 return getattr(module, pacman)
     raise Exception('The agent ' + pacman +
                     ' is not specified in any *Agents.py.')
 
 
 def replayGame(layout, actions, display):
-    import pacmanAgents
-    import ghostAgents
+    import agents.pacmanAgents as pacmanAgents
+    import agents.ghostAgents as ghostAgents
     rules = ClassicGameRules()
     agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i+1)
                                              for i in range(layout.getNumGhosts())]
@@ -683,7 +681,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         beQuiet = i < numTraining
         if beQuiet:
                 # Suppress output and graphics
-            import textDisplay
+            import view.textDisplay as textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
         else:
