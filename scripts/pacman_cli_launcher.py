@@ -2,6 +2,7 @@
 import argparse
 import os
 import platform
+from datetime import datetime
 import subprocess
 import sys
 from pathlib import Path
@@ -328,6 +329,13 @@ def _log_status(title: str, details: list[tuple[str, str]]) -> None:
     print()
 
 
+def _write_run_log(log_dir: Path, log_name: str, content: str) -> Path:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / log_name
+    log_path.write_text(content, encoding="utf-8")
+    return log_path
+
+
 def _status_details(
     *,
     root: Path,
@@ -339,6 +347,7 @@ def _status_details(
     extra: list[str],
     provided_any: bool,
     python_bin: str,
+    pythonpath: str,
 ) -> list[tuple[str, str]]:
     return [
         ("Launcher mode", "direct args" if provided_any else "interactive menu"),
@@ -352,7 +361,7 @@ def _status_details(
         ("Ghosts", str(selected_ghosts)),
         ("Games", str(selected_games)),
         ("Extra args", " ".join(extra) if extra else "<none>"),
-        ("PYTHONPATH", os.environ.get("PYTHONPATH", "<unset>")),
+        ("PYTHONPATH", pythonpath),
     ]
 
 
@@ -368,87 +377,107 @@ def main() -> int:
 
     root = Path(__file__).resolve().parents[1]
     app_root = root / "app"
+    log_dir = root / "logs"
 
     provided_any = any(
         v is not None for v in [args.agent, args.layout, args.ghosts, args.num_games]
     ) or bool(extra)
+    attempt = 0
+
+    def run_and_log(selected_agent: str, selected_layout: str, selected_ghosts: int, selected_games: int) -> int:
+        nonlocal attempt
+        attempt += 1
+
+        cmd, env = _build_command(
+            args.python_bin,
+            app_root,
+            agent=selected_agent,
+            layout=selected_layout,
+            ghosts=selected_ghosts,
+            num_games=selected_games,
+            extra=extra,
+        )
+
+        launch_started_at = datetime.now()
+        launch_stamp = launch_started_at.strftime("%Y%m%d-%H%M%S-%f")
+        log_name = f"{launch_stamp}.log"
+
+        pythonpath = env.get("PYTHONPATH", "<unset>")
+
+        status_details = _status_details(
+            root=root,
+            app_root=app_root,
+            selected_agent=selected_agent,
+            selected_layout=selected_layout,
+            selected_ghosts=selected_ghosts,
+            selected_games=selected_games,
+            extra=extra,
+            provided_any=provided_any,
+            python_bin=args.python_bin,
+            pythonpath=pythonpath,
+        )
+        _log_status("Launcher Status", status_details)
+        print(_paint("Running now...", GREEN))
+
+        started_at = datetime.now()
+        result = subprocess.run(cmd, cwd=str(root), env=env, check=False, capture_output=True, text=True)
+        finished_at = datetime.now()
+        log_content = "\n".join(
+            [
+                "Pacman Launcher Attempt Log",
+                f"Attempt: {attempt}",
+                f"Started: {started_at.isoformat(timespec='seconds')}",
+                f"Finished: {finished_at.isoformat(timespec='seconds')}",
+                f"Duration seconds: {(finished_at - started_at).total_seconds():.3f}",
+                "",
+                "== Launcher Status ==",
+                *[f"{label}: {value}" for label, value in status_details],
+                "",
+                "== Environment ==",
+                f"PYTHONPATH={pythonpath}",
+                "",
+                "== Command ==",
+                " ".join(cmd),
+                "",
+                "== Exit Code ==",
+                str(result.returncode),
+                "",
+                "== Stdout ==",
+                result.stdout.rstrip("\n") if result.stdout else "<empty>",
+                "",
+                "== Stderr ==",
+                result.stderr.rstrip("\n") if result.stderr else "<empty>",
+                "",
+            ]
+        )
+        log_path = _write_run_log(log_dir, log_name, log_content)
+
+        if result.stdout:
+            print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+        if result.stderr:
+            print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+
+        _log_status(
+            "Run Finished",
+            [
+                ("Exit code", str(result.returncode)),
+                ("Saved log", str(log_path)),
+                ("Action", "Returned to caller after direct run" if provided_any else "Returned to main menu"),
+            ],
+        )
+        print(_paint("Saved log to:", GREEN), str(log_path))
+        return result.returncode
 
     if provided_any:
         selected_agent = args.agent or "ReflexAgent"
         selected_layout = args.layout or "mediumClassic"
         selected_ghosts = args.ghosts if args.ghosts is not None else 2
         selected_games = args.num_games if args.num_games is not None else 1
-        cmd, env = _build_command(
-            args.python_bin,
-            app_root,
-            agent=selected_agent,
-            layout=selected_layout,
-            ghosts=selected_ghosts,
-            num_games=selected_games,
-            extra=extra,
-        )
-
-        _log_status(
-            "Launcher Status",
-            _status_details(
-                root=root,
-                app_root=app_root,
-                selected_agent=selected_agent,
-                selected_layout=selected_layout,
-                selected_ghosts=selected_ghosts,
-                selected_games=selected_games,
-                extra=extra,
-                provided_any=provided_any,
-                python_bin=args.python_bin,
-            ),
-        )
-        print(_paint("Running now...", GREEN))
-        result = subprocess.run(cmd, cwd=str(root), env=env, check=False)
-        _log_status(
-            "Run Finished",
-            [
-                ("Exit code", str(result.returncode)),
-                ("Action", "Returned to caller after direct run"),
-            ],
-        )
-        return result.returncode
+        return run_and_log(selected_agent, selected_layout, selected_ghosts, selected_games)
 
     while True:
         selected_agent, selected_layout, selected_ghosts, selected_games = _run_interactive_setup(root)
-
-        cmd, env = _build_command(
-            args.python_bin,
-            app_root,
-            agent=selected_agent,
-            layout=selected_layout,
-            ghosts=selected_ghosts,
-            num_games=selected_games,
-            extra=extra,
-        )
-
-        _log_status(
-            "Launcher Status",
-            _status_details(
-                root=root,
-                app_root=app_root,
-                selected_agent=selected_agent,
-                selected_layout=selected_layout,
-                selected_ghosts=selected_ghosts,
-                selected_games=selected_games,
-                extra=extra,
-                provided_any=provided_any,
-                python_bin=args.python_bin,
-            ),
-        )
-        print(_paint("Running now...", GREEN))
-        result = subprocess.run(cmd, cwd=str(root), env=env, check=False)
-        _log_status(
-            "Run Finished",
-            [
-                ("Exit code", str(result.returncode)),
-                ("Action", "Returned to main menu"),
-            ],
-        )
+        run_and_log(selected_agent, selected_layout, selected_ghosts, selected_games)
 
 
 

@@ -84,6 +84,7 @@ task run:pacman
 
 By default, `task run:pacman` opens an interactive launcher before execution.
 After each game finishes, the launcher prints a detailed status log and returns to the main menu.
+Each attempt also saves a timestamped `.log` file under `logs/` and prints the saved path on the CLI.
 
 You can configure multiple parameters first (Agent, Layout, Ghosts, Games), then return to the main menu and choose `Execute` to start.
 
