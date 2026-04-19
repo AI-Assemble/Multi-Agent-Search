@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import csv
 import os
 import platform
 from datetime import datetime
+import re
+import shlex
 import subprocess
 import sys
+import threading
+import time
+import traceback
 from pathlib import Path
 
 
@@ -18,6 +25,29 @@ MAGENTA = "\033[35m"
 BLUE = "\033[34m"
 INVERT = "\033[7m"
 
+CSV_FIELDS = [
+    "attempt_display",
+    "attempt_number",
+    "total_attempts",
+    "window_title",
+    "status",
+    "return_code",
+    "started_at",
+    "finished_at",
+    "duration_seconds",
+    "agent",
+    "layout",
+    "ghosts",
+    "parallel",
+    "score",
+    "average_score",
+    "result",
+    "wins",
+    "games_reported",
+    "win_rate",
+    "record",
+]
+
 
 def _paint(text: str, color: str) -> str:
     return f"{color}{text}{RESET}"
@@ -29,6 +59,14 @@ def _available_layouts(root: Path) -> list[str]:
         return ["mediumClassic"]
     names = [p.stem for p in layouts_dir.glob("*.lay")]
     return sorted(set(names)) or ["mediumClassic"]
+
+
+def _load_team_banner(root: Path) -> list[str]:
+    banner_path = root / "app" / "config" / "name.txt"
+    if not banner_path.exists():
+        return ["Assemble"]
+    lines = banner_path.read_text(encoding="utf-8").splitlines()
+    return lines or ["Assemble"]
 
 
 class _KeyReader:
@@ -67,7 +105,7 @@ class _KeyReader:
                 return "SPACE"
             if ch in (b"\r", b"\n"):
                 return "ENTER"
-            if ch == b"q":
+            if ch.lower() == b"q":
                 return "QUIT"
             if ch.isdigit() and ch != b"0":
                 return f"NUM:{ch.decode()}"
@@ -86,7 +124,7 @@ class _KeyReader:
             return "SPACE"
         if c1 in ("\r", "\n"):
             return "ENTER"
-        if c1 == "q":
+        if c1.lower() == "q":
             return "QUIT"
         if c1.isdigit() and c1 != "0":
             return f"NUM:{c1}"
@@ -146,9 +184,38 @@ def choose_option(
                 return None
 
 
-def _render_main_menu(menu_items: list[dict[str, str]], selected_index: int) -> None:
+def _prompt_number(title: str, description: str, current_value: int, minimum: int = 1) -> int | None:
+    while True:
+        _clear_screen()
+        print(_paint(f"{BOLD}Pacman Launcher - Enter Value{RESET}", CYAN))
+        print(_paint(title, BOLD))
+        print(_paint(description, DIM))
+        print()
+        print(_paint(f"Enter an integer >= {minimum}. Press Enter to keep {current_value}, or q to cancel.", YELLOW))
+        raw_value = input(_paint(f"Value [{current_value}]: ", GREEN)).strip()
+        if raw_value == "":
+            return current_value
+        if raw_value.lower() == "q":
+            return None
+        try:
+            parsed_value = int(raw_value)
+        except ValueError:
+            print(_paint("Please enter a valid integer.", YELLOW))
+            input(_paint("Press Enter to continue...", GREEN))
+            continue
+        if parsed_value < minimum:
+            print(_paint(f"Value must be at least {minimum}.", YELLOW))
+            input(_paint("Press Enter to continue...", GREEN))
+            continue
+        return parsed_value
+
+
+def _render_main_menu(menu_items: list[dict[str, str]], selected_index: int, team_banner: list[str]) -> None:
     selected_item = menu_items[selected_index]
     _clear_screen()
+    for line in team_banner:
+        print(_paint(line, MAGENTA))
+    print()
     print(_paint(f"{BOLD}Pacman Launcher - Main Menu{RESET}", CYAN))
     print(_paint("Configure multiple parameters, then choose Execute.", DIM))
     print()
@@ -172,14 +239,15 @@ def _render_main_menu(menu_items: list[dict[str, str]], selected_index: int) -> 
     print(_paint(f"- {selected_item['description']}", MAGENTA))
 
 
-def _run_interactive_setup(root: Path) -> tuple[str, str, int, int]:
+def _run_interactive_setup(root: Path, default_parallel: int) -> tuple[str, str, int, int, int]:
     layout_options = _available_layouts(root)
 
     state = {
         "agent": "ReflexAgent",
         "layout": "mediumClassic" if "mediumClassic" in layout_options else layout_options[0],
-        "ghosts": "2",
-        "games": "1",
+        "ghosts": 2,
+        "games": 1,
+        "parallel": max(1, int(default_parallel)),
     }
 
     menu_items = [
@@ -206,20 +274,28 @@ def _run_interactive_setup(root: Path) -> tuple[str, str, int, int]:
             "options": layout_options,
         },
         {
-            "type": "choice",
+            "type": "number",
             "key": "ghosts",
             "label": f"Ghosts: {state['ghosts']}",
-            "description": "Choose how many ghost agents will spawn.",
-            "title": "Choose number of ghosts",
-            "options": ["1", "2", "3", "4"],
+            "description": "Enter how many ghost agents will spawn.",
+            "title": "Enter number of ghosts",
+            "minimum": 1,
         },
         {
-            "type": "choice",
+            "type": "number",
             "key": "games",
             "label": f"Games: {state['games']}",
-            "description": "Choose how many games to play in this run.",
-            "title": "Choose number of games",
-            "options": ["1", "3", "5", "10"],
+            "description": "Enter how many games to run in this batch.",
+            "title": "Enter number of games",
+            "minimum": 1,
+        },
+        {
+            "type": "number",
+            "key": "parallel",
+            "label": f"Parallel: {state['parallel']}",
+            "description": "Enter max game windows to run at the same time.",
+            "title": "Enter parallel window count",
+            "minimum": 1,
         },
         {
             "type": "execute",
@@ -236,50 +312,54 @@ def _run_interactive_setup(root: Path) -> tuple[str, str, int, int]:
     ]
 
     idx = 0
-    with _KeyReader() as reader:
-        while True:
-            for item in menu_items:
-                if item["type"] == "choice":
-                    item["label"] = f"{item['key'].capitalize()}: {state[item['key']]}"
+    while True:
+        for item in menu_items:
+            if item["type"] == "choice":
+                item["label"] = f"{item['key'].capitalize()}: {state[item['key']]}"
+            elif item["type"] == "number":
+                item["label"] = f"{item['key'].capitalize()}: {state[item['key']]}"
 
-            _render_main_menu(menu_items, idx)
+        _render_main_menu(menu_items, idx, _load_team_banner(root))
+        with _KeyReader() as reader:
             key = reader.read_key()
 
-            if key == "UP":
-                idx = (idx - 1) % len(menu_items)
-                continue
-            if key == "DOWN":
-                idx = (idx + 1) % len(menu_items)
-                continue
-            if key == "QUIT":
-                _clear_screen()
-                raise SystemExit(1)
+        if key == "UP":
+            idx = (idx - 1) % len(menu_items)
+            continue
+        if key == "DOWN":
+            idx = (idx + 1) % len(menu_items)
+            continue
+        if key == "QUIT":
+            _clear_screen()
+            raise SystemExit(1)
 
-            activate = False
-            if key in ("SPACE", "ENTER"):
+        activate = False
+        if key in ("SPACE", "ENTER"):
+            activate = True
+        elif key.startswith("NUM:"):
+            picked = int(key.split(":", 1)[1]) - 1
+            if 0 <= picked < len(menu_items):
+                idx = picked
                 activate = True
-            elif key.startswith("NUM:"):
-                picked = int(key.split(":", 1)[1]) - 1
-                if 0 <= picked < len(menu_items):
-                    idx = picked
-                    activate = True
 
-            if not activate:
-                continue
+        if not activate:
+            continue
 
-            selected = menu_items[idx]
-            if selected["type"] == "quit":
-                _clear_screen()
-                raise SystemExit(1)
-            if selected["type"] == "execute":
-                _clear_screen()
-                return (
-                    state["agent"],
-                    state["layout"],
-                    int(state["ghosts"]),
-                    int(state["games"]),
-                )
+        selected = menu_items[idx]
+        if selected["type"] == "quit":
+            _clear_screen()
+            raise SystemExit(1)
+        if selected["type"] == "execute":
+            _clear_screen()
+            return (
+                state["agent"],
+                state["layout"],
+                int(state["ghosts"]),
+                int(state["games"]),
+                int(state["parallel"]),
+            )
 
+        if selected["type"] == "choice":
             choice = choose_option(
                 selected["title"],
                 selected["description"],
@@ -288,6 +368,15 @@ def _run_interactive_setup(root: Path) -> tuple[str, str, int, int]:
             )
             if choice is not None:
                 state[selected["key"]] = choice
+        elif selected["type"] == "number":
+            number_value = _prompt_number(
+                selected["title"],
+                selected["description"],
+                int(state[selected["key"]]),
+                selected.get("minimum", 1),
+            )
+            if number_value is not None:
+                state[selected["key"]] = number_value
 
 
 def _build_command(
@@ -322,6 +411,12 @@ def _build_command(
     return cmd, env
 
 
+def _preview_pythonpath(app_root: Path) -> str:
+    existing = os.environ.get("PYTHONPATH", "")
+    app_path = str(app_root)
+    return app_path if not existing else app_path + os.pathsep + existing
+
+
 def _log_status(title: str, details: list[tuple[str, str]]) -> None:
     print(_paint(f"{BOLD}{title}{RESET}", CYAN))
     for label, value in details:
@@ -329,11 +424,45 @@ def _log_status(title: str, details: list[tuple[str, str]]) -> None:
     print()
 
 
-def _write_run_log(log_dir: Path, log_name: str, content: str) -> Path:
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / log_name
-    log_path.write_text(content, encoding="utf-8")
-    return log_path
+def _next_available_path(directory: Path, stem: str, suffix: str) -> Path:
+    candidate = directory / f"{stem}{suffix}"
+    counter = 2
+    while candidate.exists():
+        candidate = directory / f"{stem}-{counter}{suffix}"
+        counter += 1
+    return candidate
+
+
+def _append_text(path: Path, lock: threading.Lock, content: str) -> None:
+    with lock:
+        with path.open("a", encoding="utf-8", newline="") as handle:
+            handle.write(content)
+            handle.flush()
+
+
+def _stop_process(process: subprocess.Popen[str]) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        process.terminate()
+    except OSError:
+        return
+
+    deadline = time.time() + 1.0
+    while process.poll() is None and time.time() < deadline:
+        time.sleep(0.05)
+
+    if process.poll() is None:
+        try:
+            process.kill()
+        except OSError:
+            pass
+
+
+def _format_command(cmd: list[str]) -> str:
+    if hasattr(shlex, "join"):
+        return shlex.join(cmd)
+    return subprocess.list2cmdline(cmd)
 
 
 def _status_details(
@@ -348,6 +477,7 @@ def _status_details(
     provided_any: bool,
     python_bin: str,
     pythonpath: str,
+    parallel: int,
 ) -> list[tuple[str, str]]:
     return [
         ("Launcher mode", "direct args" if provided_any else "interactive menu"),
@@ -360,9 +490,668 @@ def _status_details(
         ("Layout", selected_layout),
         ("Ghosts", str(selected_ghosts)),
         ("Games", str(selected_games)),
+        ("Parallel", str(parallel)),
         ("Extra args", " ".join(extra) if extra else "<none>"),
         ("PYTHONPATH", pythonpath),
     ]
+
+
+def _attempt_display(attempt_number: int, total_attempts: int) -> str:
+    return f"Attempts {attempt_number}/{total_attempts} [{attempt_number}]"
+
+
+def _window_title(attempt_number: int, total_attempts: int) -> str:
+    return f"Pacman - Attempt {attempt_number}/{total_attempts}"
+
+
+def _extract_attempt_metrics(stdout_text: str) -> dict[str, str]:
+    metrics = {
+        "score": "",
+        "average_score": "",
+        "result": "",
+        "wins": "",
+        "games_reported": "",
+        "win_rate": "",
+        "record": "",
+    }
+
+    final_score_match = re.search(
+        r"Pacman (?:emerges victorious!|died!) Score:\s*(-?\d+(?:\.\d+)?)",
+        stdout_text,
+    )
+    if final_score_match:
+        metrics["score"] = final_score_match.group(1)
+    else:
+        score_matches = re.findall(r"(?m)^Score:\s*(-?\d+(?:\.\d+)?)\s*$", stdout_text)
+        if score_matches:
+            metrics["score"] = score_matches[-1]
+
+    average_score_match = re.search(r"Average Score:\s*(-?\d+(?:\.\d+)?)", stdout_text)
+    if average_score_match:
+        metrics["average_score"] = average_score_match.group(1)
+    elif metrics["score"]:
+        metrics["average_score"] = metrics["score"]
+
+    win_rate_match = re.search(r"Win Rate:\s*(\d+)/(\d+)\s+\(([^)]+)\)", stdout_text)
+    if win_rate_match:
+        metrics["wins"] = win_rate_match.group(1)
+        metrics["games_reported"] = win_rate_match.group(2)
+        metrics["win_rate"] = win_rate_match.group(3)
+
+    record_match = re.search(r"Record:\s*(.+)", stdout_text)
+    if record_match:
+        metrics["record"] = record_match.group(1).strip()
+
+    if "Pacman emerges victorious!" in stdout_text:
+        metrics["result"] = "win"
+    elif "Pacman died!" in stdout_text:
+        metrics["result"] = "loss"
+
+    return metrics
+
+
+def _upsert_csv_row(
+    csv_path: Path,
+    csv_lock: threading.Lock,
+    csv_rows: dict[int, dict[str, object]],
+    attempt_number: int,
+    row: dict[str, object],
+) -> None:
+    with csv_lock:
+        merged_row = dict(csv_rows.get(attempt_number, {}))
+        merged_row.update(row)
+        csv_rows[attempt_number] = merged_row
+        with csv_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+            writer.writeheader()
+            for ordered_attempt in sorted(csv_rows):
+                writer.writerow(
+                    {
+                        field: csv_rows[ordered_attempt].get(field, "")
+                        for field in CSV_FIELDS
+                    }
+                )
+            handle.flush()
+
+
+def _write_stream_line(
+    *,
+    log_path: Path,
+    log_lock: threading.Lock,
+    console_lock: threading.Lock,
+    attempt_display: str,
+    stream_name: str,
+    raw_line: str,
+    is_error: bool,
+) -> None:
+    line = raw_line if raw_line.endswith("\n") else raw_line + "\n"
+    prefixed_line = f"[{attempt_display}] {stream_name}: {line}"
+    _append_text(log_path, log_lock, prefixed_line)
+    with console_lock:
+        target = sys.stderr if is_error else sys.stdout
+        try:
+            target.write(prefixed_line)
+            target.flush()
+        except OSError:
+            pass
+
+
+def _stream_process_output(
+    *,
+    pipe,
+    stream_name: str,
+    output_chunks: list[str],
+    log_path: Path,
+    log_lock: threading.Lock,
+    console_lock: threading.Lock,
+    attempt_display: str,
+    is_error: bool,
+) -> None:
+    try:
+        for raw_line in iter(pipe.readline, ""):
+            if raw_line == "":
+                break
+            output_chunks.append(raw_line)
+            _write_stream_line(
+                log_path=log_path,
+                log_lock=log_lock,
+                console_lock=console_lock,
+                attempt_display=attempt_display,
+                stream_name=stream_name,
+                raw_line=raw_line,
+                is_error=is_error,
+            )
+    finally:
+        pipe.close()
+
+
+def _request_batch_stop(batch_artifacts: dict[str, object], reason: str) -> None:
+    cancel_event: threading.Event = batch_artifacts["cancel_event"]
+    if cancel_event.is_set():
+        return
+
+    cancel_event.set()
+    message = f"Launcher stop requested: {reason}"
+    _append_text(batch_artifacts["log_path"], batch_artifacts["log_lock"], message + "\n")
+
+    with batch_artifacts["console_lock"]:
+        print(_paint(message, YELLOW))
+
+    with batch_artifacts["process_lock"]:
+        active_processes = list(batch_artifacts["active_processes"].values())
+
+    for process in active_processes:
+        _stop_process(process)
+
+
+def _watch_for_batch_quit(
+    batch_artifacts: dict[str, object],
+    listener_stop_event: threading.Event,
+) -> None:
+    cancel_event: threading.Event = batch_artifacts["cancel_event"]
+
+    if os.name == "nt":
+        import msvcrt  # type: ignore
+
+        while not listener_stop_event.is_set() and not cancel_event.is_set():
+            if msvcrt.kbhit():
+                ch = msvcrt.getwch()
+                if ch and ch.lower() == "q":
+                    _request_batch_stop(batch_artifacts, "q pressed in launcher terminal")
+                    return
+            time.sleep(0.05)
+        return
+
+    import select
+    import termios
+    import tty
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setcbreak(fd)
+        while not listener_stop_event.is_set() and not cancel_event.is_set():
+            readable, _, _ = select.select([sys.stdin], [], [], 0.05)
+            if not readable:
+                continue
+            ch = sys.stdin.read(1)
+            if ch and ch.lower() == "q":
+                _request_batch_stop(batch_artifacts, "q pressed in launcher terminal")
+                return
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+
+def _create_batch_artifacts(
+    *,
+    root: Path,
+    app_root: Path,
+    python_bin: str,
+    selected_agent: str,
+    selected_layout: str,
+    selected_ghosts: int,
+    total_games: int,
+    parallel: int,
+    extra: list[str],
+    provided_any: bool,
+) -> dict[str, object]:
+    log_dir = root / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    session_started_at = datetime.now()
+    session_stamp = session_started_at.strftime("%Y%m%d-%H%M%S-%f")
+    session_stem = f"pacman-run-{session_stamp}"
+    log_path = _next_available_path(log_dir, session_stem, ".log")
+    csv_path = _next_available_path(log_dir, session_stem, ".csv")
+    pythonpath = _preview_pythonpath(app_root)
+
+    status_details = _status_details(
+        root=root,
+        app_root=app_root,
+        selected_agent=selected_agent,
+        selected_layout=selected_layout,
+        selected_ghosts=selected_ghosts,
+        selected_games=total_games,
+        extra=extra,
+        provided_any=provided_any,
+        python_bin=python_bin,
+        pythonpath=pythonpath,
+        parallel=parallel,
+    )
+
+    log_header = "\n".join(
+        [
+            "Pacman Launcher Session Log",
+            f"Session started: {session_started_at.isoformat(timespec='seconds')}",
+            f"CSV file: {csv_path}",
+            "",
+            "== Launcher Status ==",
+            *[f"{label}: {value}" for label, value in status_details],
+            "",
+        ]
+    )
+    log_path.write_text(log_header, encoding="utf-8")
+
+    with csv_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        handle.flush()
+
+    return {
+        "log_path": log_path,
+        "csv_path": csv_path,
+        "log_lock": threading.Lock(),
+        "csv_lock": threading.Lock(),
+        "console_lock": threading.Lock(),
+        "process_lock": threading.Lock(),
+        "active_processes": {},
+        "cancel_event": threading.Event(),
+        "csv_rows": {},
+    }
+
+
+def _run_game_attempt(
+    *,
+    attempt_number: int,
+    total_attempts: int,
+    root: Path,
+    app_root: Path,
+    python_bin: str,
+    selected_agent: str,
+    selected_layout: str,
+    selected_ghosts: int,
+    extra: list[str],
+    provided_any: bool,
+    parallel: int,
+    batch_artifacts: dict[str, object],
+) -> dict[str, object]:
+    cmd, env = _build_command(
+        python_bin,
+        app_root,
+        agent=selected_agent,
+        layout=selected_layout,
+        ghosts=selected_ghosts,
+        num_games=1,
+        extra=extra,
+    )
+    env["PYTHONUNBUFFERED"] = "1"
+
+    attempt_display = _attempt_display(attempt_number, total_attempts)
+    window_title = _window_title(attempt_number, total_attempts)
+    env["PACMAN_WINDOW_TITLE"] = window_title
+
+    pythonpath = env.get("PYTHONPATH", "<unset>")
+    status_details = _status_details(
+        root=root,
+        app_root=app_root,
+        selected_agent=selected_agent,
+        selected_layout=selected_layout,
+        selected_ghosts=selected_ghosts,
+        selected_games=total_attempts,
+        extra=extra,
+        provided_any=provided_any,
+        python_bin=python_bin,
+        pythonpath=pythonpath,
+        parallel=parallel,
+    )
+
+    log_path = batch_artifacts["log_path"]
+    csv_path = batch_artifacts["csv_path"]
+    log_lock = batch_artifacts["log_lock"]
+    csv_lock = batch_artifacts["csv_lock"]
+    csv_rows = batch_artifacts["csv_rows"]
+    console_lock = batch_artifacts["console_lock"]
+    process_lock = batch_artifacts["process_lock"]
+    active_processes = batch_artifacts["active_processes"]
+    cancel_event: threading.Event = batch_artifacts["cancel_event"]
+
+    started_at = datetime.now()
+    stdout_chunks: list[str] = []
+    stderr_chunks: list[str] = []
+    return_code = 1
+    process = None
+
+    if cancel_event.is_set():
+        finished_at = started_at
+        status_label = "interrupted (launcher stop)"
+        _upsert_csv_row(
+            csv_path,
+            csv_lock,
+            csv_rows,
+            attempt_number,
+            {
+                "attempt_display": attempt_display,
+                "attempt_number": attempt_number,
+                "total_attempts": total_attempts,
+                "window_title": window_title,
+                "status": status_label,
+                "return_code": 130,
+                "started_at": started_at.isoformat(timespec="seconds"),
+                "finished_at": finished_at.isoformat(timespec="seconds"),
+                "duration_seconds": "0.000",
+                "agent": selected_agent,
+                "layout": selected_layout,
+                "ghosts": selected_ghosts,
+                "parallel": parallel,
+            },
+        )
+        return {
+            "attempt_display": attempt_display,
+            "attempt_number": attempt_number,
+            "total_attempts": total_attempts,
+            "status_label": status_label,
+            "return_code": 130,
+            "log_path": log_path,
+            "csv_path": csv_path,
+            "stdout": "",
+            "stderr": "",
+            "started_at": started_at,
+            "finished_at": finished_at,
+            "interrupted": True,
+            "window_title": window_title,
+        }
+
+    _append_text(
+        log_path,
+        log_lock,
+        "\n".join(
+            [
+                f"== Attempt Started: {attempt_display} ==",
+                f"Started: {started_at.isoformat(timespec='seconds')}",
+                f"Window title: {window_title}",
+                f"Command: {_format_command(cmd)}",
+                *[f"{label}: {value}" for label, value in status_details],
+                "",
+            ]
+        ),
+    )
+
+    with console_lock:
+        _log_status(
+            "Attempt Started",
+            [
+                ("Attempt", attempt_display),
+                ("Window title", window_title),
+                ("Session log", str(log_path)),
+                ("Session csv", str(csv_path)),
+            ],
+        )
+
+    _upsert_csv_row(
+        csv_path,
+        csv_lock,
+        csv_rows,
+        attempt_number,
+        {
+            "attempt_display": attempt_display,
+            "attempt_number": attempt_number,
+            "total_attempts": total_attempts,
+            "window_title": window_title,
+            "status": "running",
+            "started_at": started_at.isoformat(timespec="seconds"),
+            "agent": selected_agent,
+            "layout": selected_layout,
+            "ghosts": selected_ghosts,
+            "parallel": parallel,
+        },
+    )
+
+    try:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(root),
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            errors="replace",
+        )
+        with process_lock:
+            active_processes[attempt_number] = process
+
+        stdout_thread = threading.Thread(
+            target=_stream_process_output,
+            kwargs={
+                "pipe": process.stdout,
+                "stream_name": "stdout",
+                "output_chunks": stdout_chunks,
+                "log_path": log_path,
+                "log_lock": log_lock,
+                "console_lock": console_lock,
+                "attempt_display": attempt_display,
+                "is_error": False,
+            },
+            daemon=True,
+        )
+        stderr_thread = threading.Thread(
+            target=_stream_process_output,
+            kwargs={
+                "pipe": process.stderr,
+                "stream_name": "stderr",
+                "output_chunks": stderr_chunks,
+                "log_path": log_path,
+                "log_lock": log_lock,
+                "console_lock": console_lock,
+                "attempt_display": attempt_display,
+                "is_error": True,
+            },
+            daemon=True,
+        )
+        stdout_thread.start()
+        stderr_thread.start()
+        return_code = process.wait()
+        stdout_thread.join()
+        stderr_thread.join()
+    except Exception as exc:
+        stderr_chunks.append(f"{type(exc).__name__}: {exc}\n")
+        stderr_chunks.append(traceback.format_exc())
+        if process is not None and process.poll() is None:
+            process.kill()
+    finally:
+        if process is not None:
+            with process_lock:
+                active_processes.pop(attempt_number, None)
+
+    finished_at = datetime.now()
+    stdout_text = "".join(stdout_chunks)
+    stderr_text = "".join(stderr_chunks)
+    interrupted = return_code == 130
+    launcher_stopped = cancel_event.is_set()
+    if launcher_stopped and return_code != 0:
+        interrupted = True
+        status_label = "interrupted (launcher stop)"
+    else:
+        status_label = (
+            "interrupted (window closed)"
+            if interrupted
+            else "completed"
+            if return_code == 0
+            else "failed"
+        )
+    metrics = _extract_attempt_metrics(stdout_text)
+    duration_seconds = (finished_at - started_at).total_seconds()
+
+    _append_text(
+        log_path,
+        log_lock,
+        "\n".join(
+            [
+                f"== Attempt Finished: {attempt_display} ==",
+                f"Status: {status_label}",
+                f"Return code: {return_code}",
+                f"Finished: {finished_at.isoformat(timespec='seconds')}",
+                f"Duration seconds: {duration_seconds:.3f}",
+                f"Score: {metrics['score'] or '<unknown>'}",
+                f"Result: {metrics['result'] or '<unknown>'}",
+                "",
+            ]
+        ),
+    )
+
+    _upsert_csv_row(
+        csv_path,
+        csv_lock,
+        csv_rows,
+        attempt_number,
+        {
+            "attempt_display": attempt_display,
+            "attempt_number": attempt_number,
+            "total_attempts": total_attempts,
+            "window_title": window_title,
+            "status": status_label,
+            "return_code": return_code,
+            "started_at": started_at.isoformat(timespec="seconds"),
+            "finished_at": finished_at.isoformat(timespec="seconds"),
+            "duration_seconds": f"{duration_seconds:.3f}",
+            "agent": selected_agent,
+            "layout": selected_layout,
+            "ghosts": selected_ghosts,
+            "parallel": parallel,
+            **metrics,
+        },
+    )
+
+    return {
+        "attempt_display": attempt_display,
+        "attempt_number": attempt_number,
+        "total_attempts": total_attempts,
+        "status_label": status_label,
+        "return_code": return_code,
+        "log_path": log_path,
+        "csv_path": csv_path,
+        "stdout": stdout_text,
+        "stderr": stderr_text,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "interrupted": interrupted,
+        "window_title": window_title,
+    }
+
+
+def _report_attempt_result(
+    attempt_result: dict[str, object],
+    console_lock: threading.Lock,
+) -> None:
+    log_path = attempt_result["log_path"]
+    csv_path = attempt_result["csv_path"]
+    status_label = attempt_result["status_label"]
+    return_code = attempt_result["return_code"]
+    attempt_display = attempt_result["attempt_display"]
+
+    with console_lock:
+        _log_status(
+            "Attempt Finished",
+            [
+                ("Attempt", str(attempt_display)),
+                ("Status", str(status_label)),
+                ("Exit code", str(return_code)),
+                ("Session log", str(log_path)),
+                ("Session csv", str(csv_path)),
+            ],
+        )
+
+
+def _run_game_batch(
+    *,
+    root: Path,
+    app_root: Path,
+    python_bin: str,
+    selected_agent: str,
+    selected_layout: str,
+    selected_ghosts: int,
+    total_games: int,
+    parallel: int,
+    extra: list[str],
+    provided_any: bool,
+    wait_for_q_to_return: bool,
+) -> int:
+    total_attempts = max(1, total_games)
+    worker_count = max(1, parallel)
+    overall_exit_code = 0
+    batch_artifacts = _create_batch_artifacts(
+        root=root,
+        app_root=app_root,
+        python_bin=python_bin,
+        selected_agent=selected_agent,
+        selected_layout=selected_layout,
+        selected_ghosts=selected_ghosts,
+        total_games=total_attempts,
+        parallel=worker_count,
+        extra=extra,
+        provided_any=provided_any,
+    )
+
+    _log_status(
+        "Batch Artifacts",
+        [
+            ("Session log", str(batch_artifacts["log_path"])),
+            ("Session csv", str(batch_artifacts["csv_path"])),
+        ],
+    )
+    print(_paint("While running: press q in this terminal to interrupt all attempts.", YELLOW))
+
+    listener_stop_event = threading.Event()
+    listener_thread = None
+    if sys.stdin.isatty():
+        listener_thread = threading.Thread(
+            target=_watch_for_batch_quit,
+            args=(batch_artifacts, listener_stop_event),
+            daemon=True,
+        )
+        listener_thread.start()
+
+    try:
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            futures = [
+                executor.submit(
+                    _run_game_attempt,
+                    attempt_number=attempt_number,
+                    total_attempts=total_attempts,
+                    root=root,
+                    app_root=app_root,
+                    python_bin=python_bin,
+                    selected_agent=selected_agent,
+                    selected_layout=selected_layout,
+                    selected_ghosts=selected_ghosts,
+                    extra=extra,
+                    provided_any=provided_any,
+                    parallel=worker_count,
+                    batch_artifacts=batch_artifacts,
+                )
+                for attempt_number in range(1, total_attempts + 1)
+            ]
+
+            for future in as_completed(futures):
+                attempt_result = future.result()
+                if int(attempt_result["return_code"]) not in (0, 130):
+                    overall_exit_code = 1
+                _report_attempt_result(attempt_result, batch_artifacts["console_lock"])
+    finally:
+        listener_stop_event.set()
+        if listener_thread is not None:
+            listener_thread.join(timeout=0.2)
+
+    was_interrupted = batch_artifacts["cancel_event"].is_set()
+    _log_status(
+        "Batch Finished",
+        [
+            ("Total attempts", str(total_attempts)),
+            ("Parallel", str(worker_count)),
+            ("Session log", str(batch_artifacts["log_path"])),
+            ("Session csv", str(batch_artifacts["csv_path"])),
+            ("Batch status", "interrupted by launcher" if was_interrupted else "completed"),
+        ],
+    )
+
+    if wait_for_q_to_return:
+        print(_paint("Press q to return to the main menu.", YELLOW))
+        with _KeyReader() as reader:
+            while True:
+                if reader.read_key() == "QUIT":
+                    break
+
+    return overall_exit_code
 
 
 def main() -> int:
@@ -372,112 +1161,91 @@ def main() -> int:
     parser.add_argument("--layout")
     parser.add_argument("--ghosts", type=int)
     parser.add_argument("--num-games", type=int)
+    parser.add_argument("--parallel", type=int)
     parser.add_argument("--", dest="dashdash", nargs="*")
     args, extra = parser.parse_known_args()
 
     root = Path(__file__).resolve().parents[1]
     app_root = root / "app"
-    log_dir = root / "logs"
 
     provided_any = any(
-        v is not None for v in [args.agent, args.layout, args.ghosts, args.num_games]
+        v is not None for v in [args.agent, args.layout, args.ghosts, args.num_games, args.parallel]
     ) or bool(extra)
-    attempt = 0
-
-    def run_and_log(selected_agent: str, selected_layout: str, selected_ghosts: int, selected_games: int) -> int:
-        nonlocal attempt
-        attempt += 1
-
-        cmd, env = _build_command(
-            args.python_bin,
-            app_root,
-            agent=selected_agent,
-            layout=selected_layout,
-            ghosts=selected_ghosts,
-            num_games=selected_games,
-            extra=extra,
-        )
-
-        launch_started_at = datetime.now()
-        launch_stamp = launch_started_at.strftime("%Y%m%d-%H%M%S-%f")
-        log_name = f"{launch_stamp}.log"
-
-        pythonpath = env.get("PYTHONPATH", "<unset>")
-
-        status_details = _status_details(
-            root=root,
-            app_root=app_root,
-            selected_agent=selected_agent,
-            selected_layout=selected_layout,
-            selected_ghosts=selected_ghosts,
-            selected_games=selected_games,
-            extra=extra,
-            provided_any=provided_any,
-            python_bin=args.python_bin,
-            pythonpath=pythonpath,
-        )
-        _log_status("Launcher Status", status_details)
-        print(_paint("Running now...", GREEN))
-
-        started_at = datetime.now()
-        result = subprocess.run(cmd, cwd=str(root), env=env, check=False, capture_output=True, text=True)
-        finished_at = datetime.now()
-        log_content = "\n".join(
-            [
-                "Pacman Launcher Attempt Log",
-                f"Attempt: {attempt}",
-                f"Started: {started_at.isoformat(timespec='seconds')}",
-                f"Finished: {finished_at.isoformat(timespec='seconds')}",
-                f"Duration seconds: {(finished_at - started_at).total_seconds():.3f}",
-                "",
-                "== Launcher Status ==",
-                *[f"{label}: {value}" for label, value in status_details],
-                "",
-                "== Environment ==",
-                f"PYTHONPATH={pythonpath}",
-                "",
-                "== Command ==",
-                " ".join(cmd),
-                "",
-                "== Exit Code ==",
-                str(result.returncode),
-                "",
-                "== Stdout ==",
-                result.stdout.rstrip("\n") if result.stdout else "<empty>",
-                "",
-                "== Stderr ==",
-                result.stderr.rstrip("\n") if result.stderr else "<empty>",
-                "",
-            ]
-        )
-        log_path = _write_run_log(log_dir, log_name, log_content)
-
-        if result.stdout:
-            print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
-        if result.stderr:
-            print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
-
-        _log_status(
-            "Run Finished",
-            [
-                ("Exit code", str(result.returncode)),
-                ("Saved log", str(log_path)),
-                ("Action", "Returned to caller after direct run" if provided_any else "Returned to main menu"),
-            ],
-        )
-        print(_paint("Saved log to:", GREEN), str(log_path))
-        return result.returncode
+    parallel = args.parallel if args.parallel is not None else 1
+    if parallel < 1:
+        parallel = 1
 
     if provided_any:
         selected_agent = args.agent or "ReflexAgent"
         selected_layout = args.layout or "mediumClassic"
         selected_ghosts = args.ghosts if args.ghosts is not None else 2
         selected_games = args.num_games if args.num_games is not None else 1
-        return run_and_log(selected_agent, selected_layout, selected_ghosts, selected_games)
+        preview_pythonpath = _preview_pythonpath(app_root)
+        _log_status(
+            "Launcher Status",
+            _status_details(
+                root=root,
+                app_root=app_root,
+                selected_agent=selected_agent,
+                selected_layout=selected_layout,
+                selected_ghosts=selected_ghosts,
+                selected_games=selected_games,
+                extra=extra,
+                provided_any=provided_any,
+                python_bin=args.python_bin,
+                pythonpath=preview_pythonpath,
+                parallel=parallel,
+            ),
+        )
+        print(_paint("Running now...", GREEN))
+        return _run_game_batch(
+            root=root,
+            app_root=app_root,
+            python_bin=args.python_bin,
+            selected_agent=selected_agent,
+            selected_layout=selected_layout,
+            selected_ghosts=selected_ghosts,
+            total_games=selected_games,
+            parallel=parallel,
+            extra=extra,
+            provided_any=provided_any,
+            wait_for_q_to_return=False,
+        )
 
     while True:
-        selected_agent, selected_layout, selected_ghosts, selected_games = _run_interactive_setup(root)
-        run_and_log(selected_agent, selected_layout, selected_ghosts, selected_games)
+        selected_agent, selected_layout, selected_ghosts, selected_games, selected_parallel = _run_interactive_setup(root, parallel)
+        parallel = selected_parallel
+        preview_pythonpath = _preview_pythonpath(app_root)
+        _log_status(
+            "Launcher Status",
+            _status_details(
+                root=root,
+                app_root=app_root,
+                selected_agent=selected_agent,
+                selected_layout=selected_layout,
+                selected_ghosts=selected_ghosts,
+                selected_games=selected_games,
+                extra=extra,
+                provided_any=provided_any,
+                python_bin=args.python_bin,
+                pythonpath=preview_pythonpath,
+                parallel=selected_parallel,
+            ),
+        )
+        print(_paint("Running now...", GREEN))
+        _run_game_batch(
+            root=root,
+            app_root=app_root,
+            python_bin=args.python_bin,
+            selected_agent=selected_agent,
+            selected_layout=selected_layout,
+            selected_ghosts=selected_ghosts,
+            total_games=selected_games,
+            parallel=selected_parallel,
+            extra=extra,
+            provided_any=provided_any,
+            wait_for_q_to_return=True,
+        )
 
 
 

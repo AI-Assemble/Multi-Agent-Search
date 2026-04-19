@@ -149,7 +149,7 @@ def draw_background():
 
 
 def _destroy_window(event=None):
-    sys.exit(0)
+    sys.exit(130)
 #    global _root_window
 #    _root_window.destroy()
 #    _root_window = None

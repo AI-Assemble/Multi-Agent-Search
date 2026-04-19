@@ -268,11 +268,12 @@ class PacmanGraphics:
         grid_height = (height-1) * self.gridSize
         screen_width = 2*self.gridSize + grid_width
         screen_height = 2*self.gridSize + grid_height + INFO_PANE_HEIGHT
+        window_title = os.environ.get("PACMAN_WINDOW_TITLE", "CS188 Pacman")
 
         begin_graphics(screen_width,
                        screen_height,
                        BACKGROUND_COLOR,
-                       "CS188 Pacman")
+                       window_title)
 
     def drawPacman(self, pacman, index):
         position = self.getPosition(pacman)

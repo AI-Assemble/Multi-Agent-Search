@@ -85,8 +85,12 @@ task run:pacman
 By default, `task run:pacman` opens an interactive launcher before execution.
 After each game finishes, the launcher prints a detailed status log and returns to the main menu.
 Each attempt also saves a timestamped `.log` file under `logs/` and prints the saved path on the CLI.
+Closing a graphics window marks that game as interrupted and the launcher keeps running the remaining attempts.
 
 You can configure multiple parameters first (Agent, Layout, Ghosts, Games), then return to the main menu and choose `Execute` to start.
+Ghosts and Games now accept direct numeric input instead of fixed option lists.
+Parallel also accepts direct numeric input from the launcher menu.
+You can also set `--parallel=num` to run up to `num` game windows at the same time.
 
 The launcher now includes:
 
@@ -105,7 +109,8 @@ Optional overrides:
 PACMAN_AGENT=ExpectimaxAgent PACMAN_LAYOUT=minimaxClassic PACMAN_GHOSTS=2 task run:pacman
 ```
 
-When launch parameters are provided (`PACMAN_AGENT`, `PACMAN_LAYOUT`, `PACMAN_GHOSTS`, `PACMAN_GAMES`, `PACMAN_EXTRA_ARGS`), the launcher skips the interactive menu and runs directly.
+When launch parameters are provided (`PACMAN_AGENT`, `PACMAN_LAYOUT`, `PACMAN_GHOSTS`, `PACMAN_GAMES`, `PACMAN_PARALLEL`, `PACMAN_EXTRA_ARGS`), the launcher skips the interactive menu and runs directly.
+Add `PACMAN_PARALLEL` if you want Taskfile to pass `--parallel` automatically.
 
 Direct module-mode examples (without Taskfile):
 
