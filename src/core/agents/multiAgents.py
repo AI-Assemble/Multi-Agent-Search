@@ -12,13 +12,13 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from model.util import manhattanDistance
-from model.game import Directions
+from ..model.util import manhattanDistance
+from ..model.game import Directions
 import random
-import model.util as util
+from ..model import util
 
-from model.game import Agent
-from controller.pacman import GameState
+from ..model.game import Agent
+from ..controller.pacman import GameState
 
 class ReflexAgent(Agent):
     """

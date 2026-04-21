@@ -13,20 +13,20 @@
 
 
 # imports from python standard library
-import grading
+from . import grading
 import importlib.util
 import optparse
 import os
 import pprint
 import re
 import sys
-import config.projectParams as projectParams
+import core.config.projectParams as projectParams
 import random
 random.seed(0)
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 try:
-    from controller.pacman import GameState
+    from core.controller.pacman import GameState
 except:
     pass
 
@@ -125,16 +125,16 @@ def setModuleName(module, filename):
 
 #from cStringIO import StringIO
 
-def loadModuleString(moduleSource):
-    # Below broken, imp doesn't believe its being passed a file:
-    #    ValueError: load_module arg#2 should be a file or None
-    #
-    #f = StringIO(moduleCodeDict[k])
-    #tmp = imp.load_module(k, f, k, (".py", "r", imp.PY_SOURCE))
-    tmp = imp.new_module(k)
-    exec(moduleCodeDict[k], tmp.__dict__)
-    setModuleName(tmp, k)
-    return tmp
+# def loadModuleString(moduleSource):
+#     # Below broken, imp doesn't believe its being passed a file:
+#     #    ValueError: load_module arg#2 should be a file or None
+#     #
+#     #f = StringIO(moduleCodeDict[k])
+#     #tmp = imp.load_module(k, f, k, (".py", "r", imp.PY_SOURCE))
+#     tmp = imp.new_module(k)
+#     exec(moduleCodeDict[k], tmp.__dict__)
+#     setModuleName(tmp, k)
+#     return tmp
 
 
 def loadModuleFile(moduleName, filePath):
@@ -211,8 +211,8 @@ def getSolutionPath(testRoot, question, test_name):
 
 
 def runTest(testName, moduleDict, testRoot, printTestCase=False, display=None):
-    import testParser
-    import testClasses
+    from . import testParser
+    from . import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
@@ -273,8 +273,8 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
              printTestCase=False, questionToGrade=None, display=None):
     # imports of testbench code.  note that the testClasses import must follow
     # the import of student code due to dependencies
-    import testParser
-    import testClasses
+    from . import testParser
+    from . import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
@@ -346,11 +346,11 @@ def getDisplay(graphicsByDefault, options=None):
         graphics = False
     if graphics:
         try:
-            import view.graphicsDisplay as graphicsDisplay
+            from core.view import graphicsDisplay
             return graphicsDisplay.PacmanGraphics(1, frameTime=.05)
         except ImportError:
             pass
-    import view.textDisplay as textDisplay
+    from core.view import textDisplay
     return textDisplay.NullGraphics()
 
 

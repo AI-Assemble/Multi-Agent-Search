@@ -12,11 +12,11 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from model.game import Directions
-from model.game import Agent
+from ..model.game import Directions
+from ..model.game import Agent
 import random
-import model.game as game
-import model.util as util
+from ..model import game
+from ..model import util
 
 
 class LeftTurnAgent(game.Agent):

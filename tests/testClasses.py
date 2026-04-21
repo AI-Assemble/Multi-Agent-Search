@@ -14,7 +14,6 @@
 
 # import modules from python standard library
 import inspect
-import re
 import sys
 
 
