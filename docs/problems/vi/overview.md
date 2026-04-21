@@ -35,6 +35,53 @@ Mặc định, autograder hiển thị đồ họa khi dùng tùy chọn `-t`, n
 
 Xem tutorial autograder ở Project 0 để biết thêm chi tiết cách sử dụng.
 
+## Hai Cách Làm Việc
+
+Repository này hiện hỗ trợ 2 cách chạy song song:
+
+1. `Chế độ tương thích kiểu cũ`: dùng các file ở thư mục gốc như `pacman.py`, `autograder.py`, `multiAgents.py`.
+2. `Chế độ cấu trúc mới`: làm việc trực tiếp với code dưới `src/core` và `tests`.
+
+### Cách 1: Tương thích kiểu cũ
+
+Đây là cách phù hợp nhất nếu bạn muốn làm đúng theo câu lệnh trong docs gốc.
+
+Chạy game từ thư mục gốc:
+```bash
+python pacman.py
+python pacman.py -p ReflexAgent -l testClassic
+```
+
+Chạy autograder từ thư mục gốc:
+```bash
+python autograder.py
+python autograder.py -q q2 --no-graphics
+```
+
+Nếu làm bài theo đúng wording cũ của project, file bạn thường sửa là:
+```bash
+multiAgents.py
+```
+
+### Cách 2: Cấu trúc mới
+
+Đây là cách phù hợp hơn nếu bạn muốn bám theo structure hiện tại của repo.
+
+Chạy Pacman trực tiếp từ package mới:
+```bash
+PYTHONPATH=src/core python -m controller.pacman -p ReflexAgent -l testClassic
+```
+
+Chạy autograder theo structure mới:
+```bash
+PYTHONPATH="tests;src/core" python -m autograder -q q2 --no-graphics
+```
+
+Nếu làm việc trực tiếp với code chuẩn của cấu trúc mới, file bạn thường sửa là:
+```bash
+src/core/agents/multiAgents.py
+```
+
 Code của project này bao gồm các file sau (được cung cấp dưới dạng zip archive).
 
 **Các file bạn sẽ chỉnh sửa:**

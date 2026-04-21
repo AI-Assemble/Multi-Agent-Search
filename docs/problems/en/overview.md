@@ -35,6 +35,53 @@ By default, the autograder displays graphics with the `-t` option, but doesn't w
 
 See the autograder tutorial in Project 0 for more information about using the autograder.
 
+## Two Working Modes
+
+This repository now supports two parallel ways of working:
+
+1. `Legacy-compatible mode`: use the root-level files such as `pacman.py`, `autograder.py`, and `multiAgents.py`.
+2. `Refactored native mode`: work directly with the current layout under `src/core` and `tests`.
+
+### Option 1: Legacy-compatible mode
+
+This is the best fit if you want the original Berkeley-style commands in the assignment docs to keep working as written.
+
+Run the game from the repository root:
+```bash
+python pacman.py
+python pacman.py -p ReflexAgent -l testClassic
+```
+
+Run the autograder from the repository root:
+```bash
+python autograder.py
+python autograder.py -q q2 --no-graphics
+```
+
+If you follow the original assignment wording, the file you will usually edit is:
+```bash
+multiAgents.py
+```
+
+### Option 2: Refactored native mode
+
+This is the better fit if you want to work directly against the current repository structure.
+
+Run Pacman from the refactored package layout:
+```bash
+PYTHONPATH=src/core python -m controller.pacman -p ReflexAgent -l testClassic
+```
+
+Run the autograder against the refactored layout:
+```bash
+PYTHONPATH="tests;src/core" python -m autograder -q q2 --no-graphics
+```
+
+If you work directly in the canonical refactored source tree, the file you will usually edit is:
+```bash
+src/core/agents/multiAgents.py
+```
+
 The code for this project contains the following files, available as a zip archive.
 
 **Files you'll edit:**
