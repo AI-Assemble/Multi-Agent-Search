@@ -49,14 +49,14 @@ This is the best fit if you want the original Berkeley-style commands in the ass
 
 Run the game from the repository root:
 ```bash
-python pacman.py
-python pacman.py -p ReflexAgent -l testClassic
+python -m src.core.controller.pacman
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
 ```
 
 Run the autograder from the repository root:
 ```bash
-python autograder.py
-python autograder.py -q q2 --no-graphics
+python -m autograder
+python -m autograder -q q2 --no-graphics
 ```
 
 If you follow the original assignment wording, the file you will usually edit is:
@@ -70,12 +70,12 @@ This is the better fit if you want to work directly against the current reposito
 
 Run Pacman from the refactored package layout:
 ```bash
-PYTHONPATH=src/core python -m controller.pacman -p ReflexAgent -l testClassic
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
 ```
 
 Run the autograder against the refactored layout:
 ```bash
-PYTHONPATH="tests;src/core" python -m autograder -q q2 --no-graphics
+python -m autograder -q q2 --no-graphics
 ```
 
 If you work directly in the canonical refactored source tree, the file you will usually edit is:
@@ -135,15 +135,15 @@ The code for this project contains the following files, available as a zip archi
 
 First, play a game of classic Pacman by running the following command:
 ```bash
-python pacman.py
+python -m src.core.controller.pacman
 ```
 and using the arrow keys to move. Now, run the provided `ReflexAgent` in `multiAgents.py`
 ```bash
-python pacman.py -p ReflexAgent
+python -m src.core.controller.pacman -p ReflexAgent
 ```
 Note that it plays quite poorly even on simple layouts:
 ```bash
-python pacman.py -p ReflexAgent -l testClassic
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
 ```
 Inspect its code (in `multiAgents.py`) and make sure you understand what it's doing.
 

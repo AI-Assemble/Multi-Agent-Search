@@ -626,6 +626,11 @@ def loadAgent(pacman, nographics):
     app_root = os.path.dirname(os.path.dirname(__file__))
     search_packages = ['agents', 'controller']
 
+    # Derive the package prefix (e.g. 'src.core') from this module's own package
+    # so that relative imports inside agent files resolve correctly.
+    pkg = __package__ or ''
+    pkg_parent = '.'.join(pkg.split('.')[:-1]) if pkg else ''
+
     for package in search_packages:
         package_dir = os.path.join(app_root, package)
         if not os.path.isdir(package_dir):
@@ -633,8 +638,9 @@ def loadAgent(pacman, nographics):
 
         moduleNames = [f[:-3] for f in os.listdir(package_dir) if f.endswith('gents.py')]
         for modulename in moduleNames:
+            full_module = f'{pkg_parent}.{package}.{modulename}' if pkg_parent else f'{package}.{modulename}'
             try:
-                module = importlib.import_module(f'{package}.{modulename}')
+                module = importlib.import_module(full_module)
             except ImportError:
                 continue
 

@@ -13,7 +13,7 @@
 
 
 # imports from python standard library
-from . import grading
+import grading
 import importlib.util
 import optparse
 import os
@@ -138,9 +138,23 @@ def setModuleName(module, filename):
 
 
 def loadModuleFile(moduleName, filePath):
-    # https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
-    spec = importlib.util.spec_from_file_location(moduleName, filePath)
+    abs_path = os.path.abspath(filePath)
+    # When the file lives inside a package directory, import it as a proper
+    # module via importlib.import_module so that parent packages are loaded
+    # into sys.modules and relative imports inside the file resolve correctly.
+    for entry in sys.path:
+        base = os.path.abspath(entry) if entry else os.getcwd()
+        if abs_path.startswith(base + os.sep):
+            rel = os.path.relpath(abs_path, base)
+            parts = rel.replace(os.sep, '/').split('/')
+            if len(parts) > 1 and parts[-1].endswith('.py'):
+                dotted = '.'.join(parts[:-1]) + '.' + parts[-1][:-3]
+                return importlib.import_module(dotted)
+            break
+    # Fallback: top-level module with no package hierarchy
+    spec = importlib.util.spec_from_file_location(moduleName, abs_path)
     module = importlib.util.module_from_spec(spec)
+    sys.modules[moduleName] = module
     spec.loader.exec_module(module)
     return module
 
@@ -211,8 +225,8 @@ def getSolutionPath(testRoot, question, test_name):
 
 
 def runTest(testName, moduleDict, testRoot, printTestCase=False, display=None):
-    from . import testParser
-    from . import testClasses
+    import testParser
+    import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
@@ -273,8 +287,8 @@ def evaluate(generateSolutions, testRoot, moduleDict, exceptionMap=ERROR_HINT_MA
              printTestCase=False, questionToGrade=None, display=None):
     # imports of testbench code.  note that the testClasses import must follow
     # the import of student code due to dependencies
-    from . import testParser
-    from . import testClasses
+    import testParser
+    import testClasses
     project_test_classes = moduleDict['projectTestClasses']
     for module in moduleDict:
         setattr(sys.modules[__name__], module, moduleDict[module])
@@ -362,9 +376,15 @@ if __name__ == '__main__':
 
     moduleDict = {}
     for cp in codePaths:
-        moduleName = re.match(r'.*?([^/]*)\.py', cp).group(1)
-        moduleDict[moduleName] = loadModuleFile(
-            moduleName, os.path.join(options.codeRoot, cp))
+        cp = cp.strip()
+        if cp.endswith('.py'):
+            moduleName = re.match(r'.*?([^/]*)\.py', cp).group(1)
+            moduleDict[moduleName] = loadModuleFile(
+                moduleName, os.path.join(options.codeRoot, cp))
+        else:
+            # Dotted module name (e.g. 'core.agents.multiAgents')
+            moduleName = cp.rsplit('.', 1)[-1]
+            moduleDict[moduleName] = importlib.import_module(cp)
     moduleName = re.match(r'.*?([^/]*)\.py', options.testCaseCode).group(1)
     moduleDict['projectTestClasses'] = loadModuleFile(
         moduleName, os.path.join(options.codeRoot, options.testCaseCode))

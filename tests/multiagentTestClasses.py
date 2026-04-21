@@ -20,7 +20,7 @@
 #     state.getScore()
 #           used by multiAgents.scoreEvaluationFunction, which is the default
 #
-from . import testClasses
+import testClasses
 import json
 
 from collections import defaultdict
@@ -37,7 +37,7 @@ import sys
 import os
 from core.model import layout
 import core.controller.pacman as pacman
-from . import autograder
+import autograder
 
 VERBOSE = False
 
