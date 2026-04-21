@@ -35,12 +35,13 @@ Mặc định, autograder hiển thị đồ họa khi dùng tùy chọn `-t`, n
 
 Xem tutorial autograder ở Project 0 để biết thêm chi tiết cách sử dụng.
 
-## Hai Cách Làm Việc
+## Ba Cách Làm Việc
 
-Repository này hiện hỗ trợ 2 cách chạy song song:
+Repository này hiện hỗ trợ 3 cách chạy song song:
 
 1. `Chế độ tương thích kiểu cũ`: dùng các file ở thư mục gốc như `pacman.py`, `autograder.py`, `multiAgents.py`.
 2. `Chế độ cấu trúc mới`: làm việc trực tiếp với code dưới `src/core` và `tests`.
+3. `Chế độ Taskfile`: dùng các target trong `Taskfile.yml` để chạy launcher và test một cách nhất quán giữa các môi trường (CI dùng cùng targets này).
 
 ### Cách 1: Tương thích kiểu cũ
 
@@ -132,6 +133,13 @@ Lưu ý rằng agent này chơi khá tệ ngay cả ở layout đơn giản:
 python pacman.py -p ReflexAgent -l testClassic
 ```
 Hãy xem code của nó (trong `multiAgents.py`) và chắc chắn bạn hiểu nó đang làm gì.
+
+Hoặc chạy launcher qua Taskfile (ghi đè agent/layout bằng biến môi trường):
+
+```bash
+task run:pacman
+PACMAN_AGENT=ReflexAgent PACMAN_LAYOUT=testClassic task run:pacman
+```
 
 ---
 

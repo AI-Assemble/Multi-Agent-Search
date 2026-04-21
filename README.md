@@ -56,9 +56,9 @@ Install development dependencies:
 uv sync --group dev
 ```
 
-## Two Ways To Run
+## Three Ways To Run
 
-This repo now supports two equivalent workflows:
+This repo supports three equivalent workflows:
 
 1. `Legacy-compatible mode`:
 Use the classic Berkeley-style file names from the repository root such as `pacman.py`, `autograder.py`, and `multiAgents.py`.
@@ -67,6 +67,10 @@ This is the easiest path if you want the original assignment commands from the d
 2. `Refactored native mode`:
 Use the current package layout under `src/core` and `tests`.
 This is the better fit if you want to work directly with the new structure and explicit package paths.
+
+3. `Taskfile mode`:
+Use the `Taskfile.yml` targets to run the launcher and tests consistently across environments (CI uses the same targets).
+This is the most robust and reproducible way to run, and the one we recommend for most users.
 
 ### Legacy-compatible mode
 
@@ -116,6 +120,31 @@ Edit the canonical implementation file if you want to work directly in the new s
 
 ```bash
 src/core/agents/multiAgents.py
+```
+
+### Option 3: Taskfile mode
+
+Use the `Taskfile.yml` targets as a single, reproducible way to run the launcher and tests. The Taskfile is used by CI and local development and automatically prefers `uv run` when available, falling back to the active Python interpreter.
+
+Run the graphical launcher via Task:
+
+```bash
+task run:pacman
+```
+
+Run tests via Task:
+
+```bash
+task test
+task test:fast
+task test:q2
+```
+
+You can also pass environment overrides to Task (example: choose interpreter or agent):
+
+```bash
+PYTHON_BIN=/path/to/python task test
+PACMAN_AGENT=ExpectimaxAgent PACMAN_LAYOUT=minimaxClassic task run:pacman
 ```
 
 ## Run Tests (Taskfile)
