@@ -39,13 +39,13 @@ code to run a game.  This file is divided into three sections:
 To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
-from model.game import GameStateData
-from model.game import Game
-from model.game import Directions
-from model.game import Actions
-from model.util import nearestPoint
-from model.util import manhattanDistance
-import model.layout as layout
+from ..model.game import GameStateData
+from ..model.game import Game
+from ..model.game import Directions
+from ..model.game import Actions
+from ..model.util import nearestPoint
+from ..model.util import manhattanDistance
+from ..model import layout
 import sys
 import random
 import os
@@ -590,14 +590,14 @@ def readCommand(argv):
 
     # Choose a display format
     if options.quietGraphics:
-        import view.textDisplay as textDisplay
+        from ..view import textDisplay
         args['display'] = textDisplay.NullGraphics()
     elif options.textGraphics:
-        import view.textDisplay as textDisplay
+        from ..view import textDisplay
         textDisplay.SLEEP_TIME = options.frameTime
         args['display'] = textDisplay.PacmanGraphics()
     else:
-        import view.graphicsDisplay as graphicsDisplay
+        from ..view import graphicsDisplay
         args['display'] = graphicsDisplay.PacmanGraphics(
             options.zoom, frameTime=options.frameTime)
     args['numGames'] = options.numGames
@@ -626,6 +626,11 @@ def loadAgent(pacman, nographics):
     app_root = os.path.dirname(os.path.dirname(__file__))
     search_packages = ['agents', 'controller']
 
+    # Derive the package prefix (e.g. 'src.core') from this module's own package
+    # so that relative imports inside agent files resolve correctly.
+    pkg = __package__ or ''
+    pkg_parent = '.'.join(pkg.split('.')[:-1]) if pkg else ''
+
     for package in search_packages:
         package_dir = os.path.join(app_root, package)
         if not os.path.isdir(package_dir):
@@ -633,8 +638,9 @@ def loadAgent(pacman, nographics):
 
         moduleNames = [f[:-3] for f in os.listdir(package_dir) if f.endswith('gents.py')]
         for modulename in moduleNames:
+            full_module = f'{pkg_parent}.{package}.{modulename}' if pkg_parent else f'{package}.{modulename}'
             try:
-                module = importlib.import_module(f'{package}.{modulename}')
+                module = importlib.import_module(full_module)
             except ImportError:
                 continue
 
@@ -647,8 +653,8 @@ def loadAgent(pacman, nographics):
 
 
 def replayGame(layout, actions, display):
-    import agents.pacmanAgents as pacmanAgents
-    import agents.ghostAgents as ghostAgents
+    from ..agents import pacmanAgents
+    from ..agents import ghostAgents
     rules = ClassicGameRules()
     agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i+1)
                                              for i in range(layout.getNumGhosts())]
@@ -678,7 +684,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         beQuiet = i < numTraining
         if beQuiet:
                 # Suppress output and graphics
-            import view.textDisplay as textDisplay
+            from ..view import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
         else:

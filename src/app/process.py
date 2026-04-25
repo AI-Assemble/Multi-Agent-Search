@@ -19,7 +19,7 @@ def _build_command(
     cmd = [
         python_bin,
         "-m",
-        "controller.pacman",
+        "src.core.controller.pacman",
         "-p",
         agent,
         "-l",

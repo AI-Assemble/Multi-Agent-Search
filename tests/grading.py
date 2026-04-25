@@ -21,7 +21,7 @@ import json
 import traceback
 import pdb
 from collections import defaultdict
-import model.util as util
+from core.model import util
 
 
 class Grades:

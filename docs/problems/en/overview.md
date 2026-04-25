@@ -35,6 +35,67 @@ By default, the autograder displays graphics with the `-t` option, but doesn't w
 
 See the autograder tutorial in Project 0 for more information about using the autograder.
 
+## Three Working Modes
+
+This repository now supports three parallel ways of working:
+
+1. `Legacy-compatible mode`: use the root-level files such as `pacman.py`, `autograder.py`, and `multiAgents.py`.
+2. `Refactored native mode`: work directly with the current layout under `src/core` and `tests`.
+3. `Taskfile mode`: use the `Taskfile.yml` targets to run the launcher and tests consistently across environments (CI uses the same targets).
+
+### Option 1: Legacy-compatible mode
+
+This is the best fit if you want the original Berkeley-style commands in the assignment docs to keep working as written.
+
+Run the game from the repository root:
+```bash
+python -m src.core.controller.pacman
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
+```
+
+Run the autograder from the repository root:
+```bash
+python -m autograder
+python -m autograder -q q2 --no-graphics
+```
+
+If you follow the original assignment wording, the file you will usually edit is:
+```bash
+multiAgents.py
+```
+
+### Option 2: Refactored native mode
+
+This is the better fit if you want to work directly against the current repository structure.
+
+Run Pacman from the refactored package layout:
+```bash
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
+```
+
+Run the autograder against the refactored layout:
+```bash
+python -m autograder -q q2 --no-graphics
+```
+
+If you work directly in the canonical refactored source tree, the file you will usually edit is:
+```bash
+src/core/agents/multiAgents.py
+```
+
+### Option 3: Taskfile mode
+
+Taskfile provides a convenient single entry point for running the launcher and tests. Examples:
+
+```bash
+task run:pacman
+task test
+task test:fast
+task test:q2
+```
+
+TaskFILE respects `PYTHON_BIN` and is configured to prefer `uv run` when available, falling back to the plain Python interpreter.
+
 The code for this project contains the following files, available as a zip archive.
 
 **Files you'll edit:**
@@ -74,15 +135,15 @@ The code for this project contains the following files, available as a zip archi
 
 First, play a game of classic Pacman by running the following command:
 ```bash
-python pacman.py
+python -m src.core.controller.pacman
 ```
 and using the arrow keys to move. Now, run the provided `ReflexAgent` in `multiAgents.py`
 ```bash
-python pacman.py -p ReflexAgent
+python -m src.core.controller.pacman -p ReflexAgent
 ```
 Note that it plays quite poorly even on simple layouts:
 ```bash
-python pacman.py -p ReflexAgent -l testClassic
+python -m src.core.controller.pacman -p ReflexAgent -l testClassic
 ```
 Inspect its code (in `multiAgents.py`) and make sure you understand what it's doing.
 

@@ -14,7 +14,7 @@
 
 import time
 try:
-    import controller.pacman as pacman
+    from ..controller import pacman
 except:
     pass
 

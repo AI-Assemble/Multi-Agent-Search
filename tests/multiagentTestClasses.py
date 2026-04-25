@@ -27,16 +27,16 @@ from collections import defaultdict
 from pprint import PrettyPrinter
 pp = PrettyPrinter()
 
-from model.game import Agent
-from controller.pacman import GameState
-from agents.ghostAgents import RandomGhost, DirectionalGhost
+from core.model.game import Agent
+from core.controller.pacman import GameState
+from core.agents.ghostAgents import RandomGhost, DirectionalGhost
 import random
 import math
 import traceback
 import sys
 import os
-import model.layout as layout
-import controller.pacman as pacman
+from core.model import layout
+import core.controller.pacman as pacman
 import autograder
 
 VERBOSE = False
@@ -463,7 +463,7 @@ class GraphGameTreeTest(testClasses.TestCase):
 
 
 import time
-from model.util import TimeoutFunction
+from core.model.util import TimeoutFunction
 
 
 class EvalAgentTest(testClasses.TestCase):

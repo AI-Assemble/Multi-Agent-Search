@@ -8,7 +8,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-APP_DIR = REPO_ROOT / "src" / "core"
+APP_DIR = REPO_ROOT / "src"
 TESTS_DIR = REPO_ROOT / "tests"
 
 
