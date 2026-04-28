@@ -131,3 +131,24 @@ Changes are complete when all of the following are true:
 - CI workflow for that question is valid and consistent with repository rules.
 - README and INSTRUCTIONS are updated if behavior changed.
 - No JSON/YAML syntax errors in .vscode and .github/workflows files.
+
+## 8) Q6 Investigation Context: Risk-aware Evaluation Function
+
+- User request on 2026-04-28: redesign Q6 from AI usage reflection into a coding task named Risk-aware Evaluation Function, and add related tests/docs/functions.
+- Existing Q6 docs only described a Gradescope reflection; no `tests/q6` folder existed.
+- Existing autograder support already includes `EvalAgentTest` in `tests/multiagentTestClasses.py`, which can run a named Pacman agent over multiple games and award partial credit for non-timeouts, average score, and wins.
+- Q6 mirrors the Q5 structure:
+  - `src/core/agents/multiAgents.py` contains the submission-facing `riskAwareEvaluationFunction(state)` TODO stub; do not provide a ready-made scoring formula there.
+  - Q6 tests should run an existing search agent with `agentArgs: "evalFn=riskAware"` rather than using a separate Q6 agent/helper module.
+  - Keep the Q6 abbreviation `riskAware = riskAwareEvaluationFunction` in `multiAgents.py`; do not add a separate `q6` alias.
+- Q6 test infrastructure:
+  - `tests/q6/CONFIG`
+  - `tests/q6/grade-agent.test`
+  - `tests/q6/grade-agent.solution`
+  - `tests/CONFIG` includes q6 in autograder order.
+  - `tests/make_pytest.py` includes q6 in pytest-driven question coverage.
+- Q6 execution entry points:
+  - `task test:q6`
+  - VS Code task `Tests: Q6`
+  - VS Code launch profile `Pytest: Q6`
+  - CI workflow `.github/workflows/q6.yml`

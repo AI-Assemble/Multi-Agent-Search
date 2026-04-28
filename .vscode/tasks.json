@@ -150,6 +150,21 @@
             },
             "group": "test",
             "problemMatcher": []
+        },
+        {
+            "label": "Tests: Q6",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "test:q6"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
         }
     ]
 }

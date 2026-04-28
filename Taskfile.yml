@@ -61,6 +61,13 @@ tasks:
     cmds:
       - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
 
+  test:q6:
+    desc: Run only question q6
+    env:
+      PACMAN_QUESTIONS: q6
+    cmds:
+      - 'if command -v uv >/dev/null 2>&1; then uv run {{.PYTHON_BIN}} -m pytest -vv -s; else {{.PYTHON_BIN}} -m pytest -vv -s; fi'
+
   test:q2q3:
     desc: Run only questions q2 and q3
     env:

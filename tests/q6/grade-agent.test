@@ -1,0 +1,18 @@
+class: "EvalAgentTest"
+
+agentName: "ExpectimaxAgent"
+agentArgs: "evalFn=riskAware"
+layoutName: "smallClassic"
+maxTime: "120"
+numGames: "10"
+
+nonTimeoutMinimum: "10"
+nonTimeoutThresholds: "10"
+
+scoreThresholds: "100 250"
+
+winsMinimum: "1"
+winsThresholds: "1"
+
+randomSeed: "0"
+ghosts: "[RandomGhost(1)]"

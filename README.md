@@ -25,12 +25,12 @@ This repository is set up as a complete Python project with:
 * `tests/`: all test assets in one place
   * `autograder.py`, `grading.py`, `testClasses.py`, `testParser.py`, `multiagentTestClasses.py`: autograder engine (moved from `src/core/`)
   * `make_pytest.py`: pytest bridge that drives the autograder
-  * `q1/` … `q5/`: per-question `.test` and `.solution` files side by side
+  * `q1/` … `q6/`: per-question `.test` and `.solution` files side by side
 * `layouts/`: Pacman map layout files
 - `Taskfile.yml`: reusable local/CI task definitions
 - `.vscode/tasks.json`: VS Code task bindings — includes `Run: Pacman Launcher` and all test targets
 - `.vscode/launch.json`: VS Code debug profiles — `Launcher` runs `python -m app` with `PYTHONPATH=src`
-- `.github/workflows/q1.yml` ... `.github/workflows/q5.yml`: per-question CI workflows
+- `.github/workflows/q1.yml` ... `.github/workflows/q6.yml`: per-question CI workflows
 
 ## Local Setup (.venv)
 
@@ -138,6 +138,7 @@ Run tests via Task:
 task test
 task test:fast
 task test:q2
+task test:q6
 ```
 
 You can also pass environment overrides to Task (example: choose interpreter or agent):
@@ -172,6 +173,7 @@ task test:fast
 task test:slow
 task test:q2
 task test:q2q3
+task test:q6
 ```
 
 Run graphical simulation:
@@ -263,12 +265,12 @@ Run only slow checks (currently Q5):
 
 ## CI Behavior
 
-Workflow files: `.github/workflows/q1.yml` ... `.github/workflows/q5.yml`
+Workflow files: `.github/workflows/q1.yml` ... `.github/workflows/q6.yml`
 
-- each question has its own workflow (`CI Q1` ... `CI Q5`)
+- each question has its own workflow (`CI Q1` ... `CI Q6`)
 - every workflow triggers on `push` to `main` and all pull requests
 - every workflow uses Python `3.11` only
 - every workflow installs and uses Task runner
-- each workflow executes one Taskfile target (`task test:q1` ... `task test:q5`)
+- each workflow executes one Taskfile target (`task test:q1` ... `task test:q6`)
 - skip CI by starting your commit message with `[skip ci]` on push
 - skip CI on pull request by starting PR title with `[skip ci]`

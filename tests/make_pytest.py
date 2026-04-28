@@ -29,6 +29,7 @@ def _should_run(question: str) -> bool:
         "q3",
         "q4",
         pytest.param("q5", marks=pytest.mark.slow),
+        "q6",
     ],
 )
 def test_autograder_question(question: str) -> None:

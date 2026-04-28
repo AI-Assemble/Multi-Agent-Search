@@ -9,7 +9,7 @@
 * [Q3 - Alpha-Beta Pruning](q3.md)
 * [Q4 - Expectimax](q4.md)
 * [Q5 - Evaluation Function](q5.md)
-* [Q6 - AI Usage Reflection và Collaborators](q6.md)
+* [Q6 - Risk-aware Evaluation Function](q6.md)
 
 ---
 

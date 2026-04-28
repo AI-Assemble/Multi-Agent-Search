@@ -179,3 +179,16 @@ def betterEvaluationFunction(currentGameState: GameState):
 
 # Abbreviation
 better = betterEvaluationFunction
+
+
+def riskAwareEvaluationFunction(currentGameState: GameState):
+    """
+    Q6: evaluate a state by balancing progress with local survival risk.
+
+    DESCRIPTION: <write something here so we know what you did>
+    """
+    # TODO Q6: Implement a risk-aware state evaluation function.
+    util.raiseNotDefined()
+    
+# Abbreviation
+riskAware = riskAwareEvaluationFunction
