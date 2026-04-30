@@ -77,7 +77,27 @@ class ReflexAgent(Agent):
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         # TODO Q1: Implement the reflex evaluation function for this question.
-        return successorGameState.getScore()
+        
+        # Check for active ghosts nearby
+        for ghostState in newGhostStates:
+            ghostPos = ghostState.getPosition()
+            # If a ghost is active (not scared) and is too close, this is a very bad state
+            if ghostState.scaredTimer == 0 and manhattanDistance(newPos, ghostPos) <= 1:
+                return -float('inf')
+
+        # Find distance to closest food
+        foodList = newFood.asList()
+        minFoodDist = float('inf')
+        for foodPos in foodList:
+            dist = manhattanDistance(newPos, foodPos)
+            if dist < minFoodDist:
+                minFoodDist = dist
+                
+        score = successorGameState.getScore()
+        if minFoodDist != float('inf'):
+            score += 1.0 / minFoodDist
+            
+        return score
 
 def scoreEvaluationFunction(currentGameState: GameState):
     """
