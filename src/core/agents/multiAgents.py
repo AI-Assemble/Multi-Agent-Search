@@ -133,7 +133,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
     """
     Your minimax agent (question 2)
     """
-
+    # TODO Q2: Implement minimax search and return the best action.
     def getAction(self, gameState: GameState):
         """
         Returns the minimax action from the current gameState using self.depth
@@ -157,20 +157,126 @@ class MinimaxAgent(MultiAgentSearchAgent):
         gameState.isLose():
         Returns whether or not the game state is a losing state
         """
-        # TODO Q2: Implement minimax search and return the best action.
-        util.raiseNotDefined()
+        def minimax(state, depth, agentIndex):
+            # 1.Base case
+            if depth == self.depth or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+
+            # 2.Get the next agent
+            nextAgent = (agentIndex + 1) % state.getNumAgents()
+
+            # 3.Increase depth but only when back to Pacman
+            # Depth is not total move but Pacman's moves
+            if nextAgent == 0:
+                nextDepth = depth + 1
+            else: 
+                nextDepth = depth
+
+            # 4.Get all legal actions of the current agent
+            actions = state.getLegalActions(agentIndex)
+
+            # 5.MAX (Pacman)
+            if agentIndex == 0:
+                values = []
+                for action in actions:
+                    successor = state.generateSuccessor(agentIndex, action)
+                    values.append(minimax(successor, nextDepth, nextAgent))
+                return max(values)
+            # 6.MIN (Ghosts)
+            else:
+                values = []
+                for action in actions:
+                    successor = state.generateSuccessor(agentIndex, action)
+                    values.append(minimax(successor, nextDepth, nextAgent))
+                return min(values)
+
+        # Best score and action for Pacman (MAX)
+        bestScore = float('-inf')
+        bestAction = None
+
+        # Get Pacman legal moves at the time (current state)
+        actions = gameState.getLegalActions(0)
+
+        # Examinating all actions then generate all outcomes
+        # Return the best action for Pacman
+        for action in actions: 
+            successor = gameState.generateSuccessor(0, action)
+            score = minimax(successor, 0, 1)
+            if score > bestScore:
+                bestScore = score
+                bestAction = action
+        return bestAction
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
     Your minimax agent with alpha-beta pruning (question 3)
     """
-
     def getAction(self, gameState: GameState):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         # TODO Q3: Implement alpha-beta pruning on top of minimax search.
-        util.raiseNotDefined()
+        # util.raiseNotDefined()
+        def alphaBetaValue(state, depth, agentIndex, alpha, beta):
+            # 1.Base case
+            if depth == self.depth or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+
+            # 2.Get the next agent
+            nextAgent = (agentIndex + 1) % state.getNumAgents()
+
+            # 3.Increase depth but only when back to Pacman
+            # Depth is not total move but Pacman's moves
+            if nextAgent == 0:
+                nextDepth = depth + 1
+            else: 
+                nextDepth = depth
+
+            # 4.Get all legal actions of the current agent
+            actions = state.getLegalActions(agentIndex)
+
+            # 5.MAX (Pacman)
+            if agentIndex == 0:
+                value = float('-inf')
+                for action in actions:
+                    successor = state.generateSuccessor(agentIndex, action)
+                    score = alphaBetaValue(successor, nextDepth, nextAgent, alpha, beta)
+                    value = max(value, score)
+                    alpha = max(alpha, value)
+                    # Pruning
+                    if alpha >= beta:
+                        break
+                return value
+            # 6.MIN (Ghosts)
+            else:
+                value = float('inf')
+                for action in actions:
+                    successor = state.generateSuccessor(agentIndex, action)
+                    score = alphaBetaValue(successor, nextDepth, nextAgent, alpha, beta)
+                    value = min(value, score)
+                    beta = min(beta, value)
+                    # Pruning
+                    if beta <= alpha:
+                        break
+                return value
+
+        # Best score and action for Pacman (MAX)
+        bestScore = float('-inf')
+        bestAction = None
+
+        # Get Pacman legal moves at the time (current state)
+        actions = gameState.getLegalActions(0)
+
+        # Examinating all actions then generate all outcomes
+        # Return the best action for Pacman
+        for action in actions: 
+            successor = gameState.generateSuccessor(0, action)
+            score = alphaBetaValue(successor, 0, 1, float('-inf'), float('+inf'))
+            if score > bestScore:
+                bestScore = score
+                bestAction = action
+        return bestAction
+        # TODO: fix all bugs and pass all test
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -185,7 +291,49 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         # TODO Q4: Implement expectimax with uniformly random ghost actions.
-        util.raiseNotDefined()
+        def expectimax(state, depth, agentIndex):
+                       # Dừng duyệt cây lại nếu đã đạt đến độ sâu nhất định hoặc game state là win hoặc over
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return self.evaluationFunction(state)
+
+            legalActions = state.getLegalActions(agentIndex)
+            if not legalActions:
+                return self.evaluationFunction(state)
+
+            nextAgent = agentIndex + 1
+            nextDepth = depth
+
+            # nếu đã duyệt đủ các trạng thái của agent ghost và pacman thì độ sâu của thuật toán sẽ tăng lên 1 và tiếp tục duyệt tiếp
+            if nextAgent == state.getNumAgents():
+                nextAgent = 0
+                nextDepth += 1
+
+            # Đối tượng duyệt hiện tại là pacman thì ta sẽ lấy kết quả max từ hàm đánh giá các trạng thái của pacman
+            if agentIndex == 0:
+                return max(
+                    expectimax(state.generateSuccessor(agentIndex, action), nextDepth, nextAgent)
+                    for action in legalActions
+                )
+
+            # nếu đối tượng hiện tại là ghost thì ta sẽ lấy kết quả trung bình từ hàm đánh giá các trạng thái của ghost
+            totalValue = 0
+            for action in legalActions:
+                successor = state.generateSuccessor(agentIndex, action)
+                totalValue += expectimax(successor, nextDepth, nextAgent)
+            return totalValue / len(legalActions)
+
+        bestAction = None
+        bestValue = float("-inf")
+        
+        #Bắt đầu duyệt cây expectimax đã được thiết kế trên để tìm ra hướng đi cho pacman    
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            value = expectimax(successor, 0, 1)
+            if value > bestValue:
+                bestValue = value
+                bestAction = action
+
+        return bestAction
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -195,7 +343,55 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     # TODO Q5: Implement the improved state evaluation function for this question.
-    util.raiseNotDefined()
+    
+    #Lấy ra các thông tin về trạng thái hiện tại của game:
+    pacmanPos = currentGameState.getPacmanPosition()
+    foodGrid = currentGameState.getFood()
+    ghostStates = currentGameState.getGhostStates()
+    capsules = currentGameState.getCapsules()
+
+    foodList = foodGrid.asList()
+
+    score = currentGameState.getScore()
+
+    print("origin score: ", score )
+
+    #Cơ chế thưởng phạt để pacman ưu tiên ăn quả nhằm đạt được điểm cao
+    if len(foodList) > 0:
+        foodDistances = [
+            manhattanDistance(pacmanPos, food)
+            for food in foodList
+        ]
+
+        closestFoodDist = min(foodDistances)
+
+        # thưởng khi gần food
+        score += 10.0 / (closestFoodDist + 1)
+
+        # phạt khi còn nhiều food
+        score -= 4 * len(foodList)
+
+    #Cơ chế thưởng phạt để pacman tránh ghost có hướng di chuyển random một cách ổn định nhất
+    for ghost in ghostStates:
+        ghostPos = ghost.getPosition()
+        ghostDist = manhattanDistance(pacmanPos, ghostPos)
+
+        # ghost đang sợ
+        if ghost.scaredTimer > 0:
+            score += 200 / (ghostDist + 1)
+
+        # ghost nguy hiểm
+        else:
+            if ghostDist <= 1:
+                score -= 500
+            else:
+                score -= 2.0 / ghostDist
+    
+    #Phạt nặng khi còn nhiều capsules
+    score -= 20 * len(capsules)
+
+    return score
+    # util.raiseNotDefined()
 
 # Abbreviation
 better = betterEvaluationFunction
