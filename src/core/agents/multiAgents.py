@@ -397,19 +397,9 @@ def betterEvaluationFunction(currentGameState: GameState):
 better = betterEvaluationFunction
 
 
-# def riskAwareEvaluationFunction(currentGameState: GameState):
-#     """
-#     Q6: evaluate a state by balancing progress with local survival risk.
-
-#     DESCRIPTION: <write something here so we know what you did>
-#     """
-#     # TODO Q6: Implement a risk-aware state evaluation function.
-#     util.raiseNotDefined()
-    
 def riskAwareEvaluationFunction(currentGameState: GameState):
     """
-    Q6: Risk-aware evaluation function that extends betterEvaluationFunction
-    with spatial entrapment awareness.
+    Q6: evaluate a state by balancing progress with local survival risk.
 
     DESCRIPTION:
     Builds on Q5's food/capsule/ghost features and adds two new Q6-specific
@@ -441,38 +431,28 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
 
     score = currentGameState.getScore()
 
-    # ── Food features (inherited from Q5) ───────────────────────────────────
-    if foodList:
-        foodDistances = [manhattanDistance(pos, f) for f in foodList]
-        score += 10.0 / min(foodDistances)
-        score -= 0.3 * (sum(foodDistances) / len(foodDistances))
-    score -= 5.0 * len(foodList)
+    # Food features (inherited from Q5)
+    if len(foodList) > 0:
+        foodDistances = [manhattanDistance(pos, food) for food in foodList]
+        closestFoodDist = min(foodDistances)
+        score += 10.0 / (closestFoodDist + 1)
+        score -= 4 * len(foodList)
 
-    # ── Capsule features (inherited from Q5) ────────────────────────────────
-    if capsules:
-        capsuleDists = [manhattanDistance(pos, c) for c in capsules]
-        anyGhostClose = any(
-            manhattanDistance(pos, g.getPosition()) <= 5 and g.scaredTimer == 0
-            for g in ghostStates
-        )
-        if anyGhostClose:
-            score += 10.0 / (min(capsuleDists) + 1)
-        score -= 15.0 * len(capsules)
+    # Capsule features (inherited from Q5)
+    score -= 20 * len(capsules)
 
-    # ── Ghost features (inherited from Q5) ──────────────────────────────────
+    # Ghost features (inherited from Q5)
     for ghost in ghostStates:
-        d = manhattanDistance(pos, ghost.getPosition())
+        ghostDist = manhattanDistance(pos, ghost.getPosition())
         if ghost.scaredTimer > 0:
-            score += 200.0 / (d + 0.5)     # chase scared ghosts
+            score += 200.0 / (ghostDist + 1)
         else:
-            if d <= 1:
-                score -= 2000
-            elif d <= 2:
-                score -= 200
-            elif d <= 4:
-                score -= 20
+            if ghostDist <= 1:
+                score -= 500
+            else:
+                score -= 2.0 / ghostDist
 
-    # ── Q6: Degrees of Freedom (BFS flood fill, inlined) ───────────────────────
+    # Q6: Degrees of Freedom (BFS flood fill, inlined)
     # Count non-wall cells reachable from pos within DOF_RADIUS steps.
     # A low count means Pacman is in a dead-end or narrow corridor.
     DOF_RADIUS = 5
@@ -492,10 +472,10 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
                 _visited.add(_nb)
                 _queue.push((_nb, _depth + 1))
     dof = len(_visited)   # includes the starting cell
-    MAX_DOF = DOF_RADIUS * DOF_RADIUS * 4   # conservative upper bound = 100
+    MAX_DOF = (DOF_RADIUS * 2 + 1) * (DOF_RADIUS * 2 + 1)   # conservative upper bound = 121
     dof_norm = dof / MAX_DOF                # 0..1  (1 = fully open)
 
-    # ── Q6: Entrapment Risk  (ghost threat × spatial constraint) ─────────────
+    # Q6: Entrapment Risk  (ghost threat × spatial constraint)
     # Accumulate threat only from nearby ACTIVE ghosts
     THREAT_RADIUS = 6
     ghost_threat = 0.0
@@ -511,7 +491,7 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
     entrapment_risk   = ghost_threat * entrapment_factor * 40.0
     score -= entrapment_risk
 
-    # ── Q6: Escape Route Bonus ───────────────────────────────────────────────
+    # Q6: Escape Route Bonus
     # Only reward openness when a ghost is actually nearby; otherwise the bonus
     # competes with food-seeking and causes Pacman to wander.
     if ghost_threat > 0:
