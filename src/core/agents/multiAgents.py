@@ -201,14 +201,127 @@ def betterEvaluationFunction(currentGameState: GameState):
 better = betterEvaluationFunction
 
 
+# def riskAwareEvaluationFunction(currentGameState: GameState):
+#     """
+#     Q6: evaluate a state by balancing progress with local survival risk.
+
+#     DESCRIPTION: <write something here so we know what you did>
+#     """
+#     # TODO Q6: Implement a risk-aware state evaluation function.
+#     util.raiseNotDefined()
+    
 def riskAwareEvaluationFunction(currentGameState: GameState):
     """
-    Q6: evaluate a state by balancing progress with local survival risk.
+    Q6: Risk-aware evaluation function that extends betterEvaluationFunction
+    with spatial entrapment awareness.
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+    Builds on Q5's food/capsule/ghost features and adds two new Q6-specific
+    components:
+
+    1. Degrees of Freedom (DoF) — a BFS flood fill from Pacman's position
+       counts how many cells are reachable within DOF_RADIUS steps.  A low
+       DoF value means Pacman is in a dead-end or tight corridor.
+
+    2. Entrapment Risk — ghost threat (summed over nearby active ghosts) is
+       *amplified* by the inverse of DoF.  Being cornered near a ghost is
+       penalised far more heavily than being cornered in open space.
+
+       entrapment_risk = ghost_threat * (1 / dof) * WEIGHT
+
+    3. Escape Bonus — a small reward proportional to DoF so Pacman prefers
+       open intersections over narrow corridors, all else being equal.
     """
-    # TODO Q6: Implement a risk-aware state evaluation function.
-    util.raiseNotDefined()
-    
+    if currentGameState.isWin():
+        return float('inf')
+    if currentGameState.isLose():
+        return -float('inf')
+
+    pos         = currentGameState.getPacmanPosition()
+    foodList    = currentGameState.getFood().asList()
+    ghostStates = currentGameState.getGhostStates()
+    capsules    = currentGameState.getCapsules()
+    walls       = currentGameState.getWalls()
+
+    score = currentGameState.getScore()
+
+    # ── Food features (inherited from Q5) ───────────────────────────────────
+    if foodList:
+        foodDistances = [manhattanDistance(pos, f) for f in foodList]
+        score += 10.0 / min(foodDistances)
+        score -= 0.3 * (sum(foodDistances) / len(foodDistances))
+    score -= 5.0 * len(foodList)
+
+    # ── Capsule features (inherited from Q5) ────────────────────────────────
+    if capsules:
+        capsuleDists = [manhattanDistance(pos, c) for c in capsules]
+        anyGhostClose = any(
+            manhattanDistance(pos, g.getPosition()) <= 5 and g.scaredTimer == 0
+            for g in ghostStates
+        )
+        if anyGhostClose:
+            score += 10.0 / (min(capsuleDists) + 1)
+        score -= 15.0 * len(capsules)
+
+    # ── Ghost features (inherited from Q5) ──────────────────────────────────
+    for ghost in ghostStates:
+        d = manhattanDistance(pos, ghost.getPosition())
+        if ghost.scaredTimer > 0:
+            score += 200.0 / (d + 0.5)     # chase scared ghosts
+        else:
+            if d <= 1:
+                score -= 2000
+            elif d <= 2:
+                score -= 200
+            elif d <= 4:
+                score -= 20
+
+    # ── Q6: Degrees of Freedom (BFS flood fill, inlined) ───────────────────────
+    # Count non-wall cells reachable from pos within DOF_RADIUS steps.
+    # A low count means Pacman is in a dead-end or narrow corridor.
+    DOF_RADIUS = 5
+    _visited = set()
+    _queue = util.Queue()
+    _queue.push((pos, 0))
+    _visited.add(pos)
+    while not _queue.isEmpty():
+        _cur, _depth = _queue.pop()
+        if _depth >= DOF_RADIUS:
+            continue
+        _x, _y = _cur
+        for _dx, _dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            _nx, _ny = _x + _dx, _y + _dy
+            _nb = (_nx, _ny)
+            if _nb not in _visited and not walls[_nx][_ny]:
+                _visited.add(_nb)
+                _queue.push((_nb, _depth + 1))
+    dof = len(_visited)   # includes the starting cell
+    MAX_DOF = DOF_RADIUS * DOF_RADIUS * 4   # conservative upper bound = 100
+    dof_norm = dof / MAX_DOF                # 0..1  (1 = fully open)
+
+    # ── Q6: Entrapment Risk  (ghost threat × spatial constraint) ─────────────
+    # Accumulate threat only from nearby ACTIVE ghosts
+    THREAT_RADIUS = 6
+    ghost_threat = 0.0
+    for ghost in ghostStates:
+        if ghost.scaredTimer == 0:
+            d = manhattanDistance(pos, ghost.getPosition())
+            if d < THREAT_RADIUS:
+                ghost_threat += (THREAT_RADIUS - d)   # range 1..5
+
+    # entrapment_factor: high when DoF is low (trapped), zero when fully open
+    # Using (1 - dof_norm) so it scales cleanly between 0 and 1
+    entrapment_factor = 1.0 - dof_norm
+    entrapment_risk   = ghost_threat * entrapment_factor * 40.0
+    score -= entrapment_risk
+
+    # ── Q6: Escape Route Bonus ───────────────────────────────────────────────
+    # Only reward openness when a ghost is actually nearby; otherwise the bonus
+    # competes with food-seeking and causes Pacman to wander.
+    if ghost_threat > 0:
+        score += 0.5 * dof
+
+    return score
+
 # Abbreviation
 riskAware = riskAwareEvaluationFunction
