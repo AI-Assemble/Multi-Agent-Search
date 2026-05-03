@@ -110,12 +110,10 @@ class MultiAgentSearchAgent(Agent):
         self.depth = int(depth)
 
 class MinimaxAgent(MultiAgentSearchAgent):
+    # TODO Q2: Implement minimax search and return the best action.
     """
     Your minimax agent (question 2)
-    """
-    # TODO Q2: Implement minimax search and return the best action.
-    def getAction(self, gameState: GameState):
-        """
+
         Returns the minimax action from the current gameState using self.depth
         and self.evaluationFunction.
 
@@ -136,7 +134,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
         gameState.isLose():
         Returns whether or not the game state is a losing state
-        """
+    """
+    def getAction(self, gameState: GameState):
         def minimax(state, depth, agentIndex):
             # 1.Base case
             if depth == self.depth or state.isWin() or state.isLose():
@@ -146,7 +145,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             nextAgent = (agentIndex + 1) % state.getNumAgents()
 
             # 3.Increase depth but only when back to Pacman
-            # Depth is not total move but Pacman's moves
+            # Depth is not total move but Pacman's moves!!!
             if nextAgent == 0:
                 nextDepth = depth + 1
             else: 
@@ -202,18 +201,22 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if depth == self.depth or state.isWin() or state.isLose():
                 return self.evaluationFunction(state)
 
-            # 2.Get the next agent
+            # 2. Get the next agent
             nextAgent = (agentIndex + 1) % state.getNumAgents()
 
-            # 3.Increase depth but only when back to Pacman
-            # Depth is not total move but Pacman's moves
+            # 3. Increase depth but only when back to Pacman
+            # Depth is not total move but Pacman's moves!!!!!!
             if nextAgent == 0:
                 nextDepth = depth + 1
             else: 
                 nextDepth = depth
 
-            # 4.Get all legal actions of the current agent
+            # 4. Get all legal actions of the current agent
             actions = state.getLegalActions(agentIndex)
+
+            # debug
+            if not actions:
+                return self.evaluationFunction(state)
 
             # 5.MAX (Pacman)
             if agentIndex == 0:
@@ -224,9 +227,10 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     value = max(value, score)
                     alpha = max(alpha, value)
                     # Pruning
-                    if alpha >= beta:
+                    if alpha > beta:
                         break
                 return value
+
             # 6.MIN (Ghosts)
             else:
                 value = float('inf')
@@ -236,7 +240,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     value = min(value, score)
                     beta = min(beta, value)
                     # Pruning
-                    if beta <= alpha:
+                    if beta < alpha:
                         break
                 return value
 
@@ -244,19 +248,23 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         bestScore = float('-inf')
         bestAction = None
 
+        alpha = float('-inf')
+        beta = float('inf')
+
         # Get Pacman legal moves at the time (current state)
         actions = gameState.getLegalActions(0)
 
         # Examinating all actions then generate all outcomes
         # Return the best action for Pacman
-        for action in actions: 
+        for action in actions:
             successor = gameState.generateSuccessor(0, action)
-            score = alphaBetaValue(successor, 0, 1, float('-inf'), float('+inf'))
+            score = alphaBetaValue(successor, 0, 1, alpha, beta)
             if score > bestScore:
                 bestScore = score
                 bestAction = action
+
+            alpha = max(alpha, bestScore)
         return bestAction
-        # TODO: fix all bugs and pass all test
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
