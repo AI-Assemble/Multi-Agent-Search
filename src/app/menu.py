@@ -3,6 +3,10 @@ from pathlib import Path
 from .colors import BLUE, BOLD, CYAN, DIM, GREEN, INVERT, MAGENTA, RESET, YELLOW, _paint
 from .fs import _available_layouts, _load_team_banner
 from .keys import _KeyReader, _clear_screen
+from src.core.agents.multiAgents import EVALUATION_FUNCTIONS
+
+
+SEARCH_AGENTS = {"MinimaxAgent", "AlphaBetaAgent", "ExpectimaxAgent"}
 
 
 def choose_option(
@@ -33,7 +37,7 @@ def choose_option(
                     print(f"  {i}. {opt}")
 
             print()
-            print(_paint("  0. Back to main menu", BLUE))
+            print(_paint("  q. Back to main menu", BLUE))
 
             key = reader.read_key()
             if key == "UP":
@@ -79,7 +83,7 @@ def _prompt_number(title: str, description: str, current_value: int, minimum: in
         return parsed_value
 
 
-def _render_main_menu(menu_items: list[dict[str, str]], selected_index: int, team_banner: list[str]) -> None:
+def _render_main_menu(menu_items: list[dict[str, object]], selected_index: int, team_banner: list[str]) -> None:
     selected_item = menu_items[selected_index]
     _clear_screen()
     for line in team_banner:
@@ -96,31 +100,52 @@ def _render_main_menu(menu_items: list[dict[str, str]], selected_index: int, tea
     )
     print()
 
-    for i, item in enumerate(menu_items, start=1):
-        label = f"  {i}. {item['label']}"
-        if i - 1 == selected_index:
-            print(_paint(label, INVERT))
+    for item in menu_items:
+        label = f"  {item['slot']}. {item['label']}"
+        if item.get("enabled", True):
+            if item["slot"] - 1 == selected_index:
+                print(_paint(label, INVERT))
+            else:
+                print(label)
         else:
-            print(label)
+            print(_paint(label, DIM))
 
     print()
     print(_paint("Selected Item Description:", GREEN))
     print(_paint(f"- {selected_item['description']}", MAGENTA))
 
 
-def _run_interactive_setup(root: Path, default_parallel: int) -> tuple[str, str, int, int, int]:
+def _run_interactive_setup(
+    root: Path, default_parallel: int, initial_state: dict[str, object] | None = None
+) -> tuple[str, str, str, int, int, int]:
     layout_options = _available_layouts(root)
 
+    # Base defaults
     state = {
         "agent": "ReflexAgent",
+        "evalFn": "score",
         "layout": "mediumClassic" if "mediumClassic" in layout_options else layout_options[0],
         "ghosts": 2,
         "games": 1,
         "parallel": max(1, int(default_parallel)),
     }
 
-    menu_items = [
+    # Apply any previously saved choices (in-session persistence)
+    if initial_state:
+        for k in ("agent", "evalFn", "layout", "ghosts", "games", "parallel"):
+            if k in initial_state and initial_state[k] is not None:
+                # ensure numeric fields are int
+                if k in ("ghosts", "games", "parallel"):
+                    try:
+                        state[k] = int(initial_state[k])
+                    except Exception:
+                        pass
+                else:
+                    state[k] = initial_state[k]
+
+    menu_items: list[dict[str, object]] = [
         {
+            "slot": 1,
             "type": "choice",
             "key": "agent",
             "label": f"Agent: {state['agent']}",
@@ -133,68 +158,106 @@ def _run_interactive_setup(root: Path, default_parallel: int) -> tuple[str, str,
                 "ExpectimaxAgent",
                 "KeyboardAgent",
             ],
+            "enabled": True,
         },
         {
+            "slot": 2,
+            "type": "choice",
+            "key": "evalFn",
+            "label": f"Evaluation Function: {state['evalFn']}",
+            "description": "Select the evaluation function used by supported agents.",
+            "title": "Choose evaluation function",
+            "options": list(EVALUATION_FUNCTIONS.keys()),
+            "enabled": True,
+        },
+        {
+            "slot": 3,
             "type": "choice",
             "key": "layout",
             "label": f"Layout: {state['layout']}",
             "description": "Select the game map layout.",
             "title": "Choose layout",
             "options": layout_options,
+            "enabled": True,
         },
         {
+            "slot": 4,
             "type": "number",
             "key": "ghosts",
             "label": f"Ghosts: {state['ghosts']}",
             "description": "Enter how many ghost agents will spawn.",
             "title": "Enter number of ghosts",
             "minimum": 1,
+            "enabled": True,
         },
         {
+            "slot": 5,
             "type": "number",
             "key": "games",
             "label": f"Games: {state['games']}",
             "description": "Enter how many games to run in this batch.",
             "title": "Enter number of games",
             "minimum": 1,
+            "enabled": True,
         },
         {
+            "slot": 6,
             "type": "number",
             "key": "parallel",
             "label": f"Parallel: {state['parallel']}",
             "description": "Enter max game windows to run at the same time.",
             "title": "Enter parallel window count",
             "minimum": 1,
+            "enabled": True,
         },
         {
+            "slot": 7,
             "type": "execute",
             "key": "execute",
             "label": "Execute",
             "description": "Run Pacman now with the selected configuration.",
+            "enabled": True,
         },
         {
+            "slot": 8,
             "type": "quit",
             "key": "quit",
             "label": "Quit",
             "description": "Exit launcher without running.",
+            "enabled": True,
         },
     ]
 
     idx = 0
     while True:
+        state["evalFn"] = state["evalFn"] if state["evalFn"] in EVALUATION_FUNCTIONS else "score"
+        eval_item = menu_items[1]
+        eval_item["enabled"] = state["agent"] in SEARCH_AGENTS
+        eval_item["label"] = (
+            f"Evaluation Function: {state['evalFn']} (unavailable)"
+            if not eval_item["enabled"]
+            else f"Evaluation Function: {state['evalFn']}"
+        )
+
         for item in menu_items:
-            if item["type"] in ("choice", "number"):
+            if item["type"] in ("choice", "number") and item["key"] != "evalFn":
                 item["label"] = f"{item['key'].capitalize()}: {state[item['key']]}"
+
+        navigable_indices = [i for i, item in enumerate(menu_items) if item.get("enabled", True)]
+        if idx not in navigable_indices:
+            idx = navigable_indices[0]
 
         _render_main_menu(menu_items, idx, _load_team_banner(root))
         with _KeyReader() as reader:
             key = reader.read_key()
 
         if key == "UP":
-            idx = (idx - 1) % len(menu_items)
+            current_pos = navigable_indices.index(idx)
+            idx = navigable_indices[(current_pos - 1) % len(navigable_indices)]
             continue
         if key == "DOWN":
-            idx = (idx + 1) % len(menu_items)
+            current_pos = navigable_indices.index(idx)
+            idx = navigable_indices[(current_pos + 1) % len(navigable_indices)]
             continue
         if key == "QUIT":
             _clear_screen()
@@ -216,10 +279,13 @@ def _run_interactive_setup(root: Path, default_parallel: int) -> tuple[str, str,
         if selected["type"] == "quit":
             _clear_screen()
             raise SystemExit(1)
+        if not selected.get("enabled", True):
+            continue
         if selected["type"] == "execute":
             _clear_screen()
             return (
                 state["agent"],
+                state["evalFn"],
                 state["layout"],
                 int(state["ghosts"]),
                 int(state["games"]),
