@@ -292,7 +292,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         """
         # TODO Q4: Implement expectimax with uniformly random ghost actions.
         def expectimax(state, depth, agentIndex):
-                       # Dừng duyệt cây lại nếu đã đạt đến độ sâu nhất định hoặc game state là win hoặc over
+            # Dừng duyệt cây lại nếu đã đạt đến độ sâu nhất định hoặc game state là win hoặc over
             if state.isWin() or state.isLose() or depth == self.depth:
                 return self.evaluationFunction(state)
 
@@ -349,11 +349,8 @@ def betterEvaluationFunction(currentGameState: GameState):
     foodGrid = currentGameState.getFood()
     ghostStates = currentGameState.getGhostStates()
     capsules = currentGameState.getCapsules()
-
     foodList = foodGrid.asList()
-
     score = currentGameState.getScore()
-
     print("origin score: ", score )
 
     #Cơ chế thưởng phạt để pacman ưu tiên ăn quả nhằm đạt được điểm cao
@@ -391,7 +388,6 @@ def betterEvaluationFunction(currentGameState: GameState):
     score -= 20 * len(capsules)
 
     return score
-    # util.raiseNotDefined()
 
 # Abbreviation
 better = betterEvaluationFunction
