@@ -110,7 +110,6 @@ class MultiAgentSearchAgent(Agent):
         self.depth = int(depth)
 
 class MinimaxAgent(MultiAgentSearchAgent):
-    # TODO Q2: Implement minimax search and return the best action.
     """
     Your minimax agent (question 2)
 
@@ -177,7 +176,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         # Get Pacman legal moves at the time (current state)
         actions = gameState.getLegalActions(0)
 
-        # Examinating all actions then generate all outcomes
+        # Examining all actions then generating all outcomes
         # Return the best action for Pacman
         for action in actions: 
             successor = gameState.generateSuccessor(0, action)
@@ -195,7 +194,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
         """
-        # TODO Q3: Implement alpha-beta pruning on top of minimax search.
+        # Helper for minimax search with alpha-beta pruning.
         def alphaBetaValue(state, depth, agentIndex, alpha, beta):
             # 1.Base case
             if depth == self.depth or state.isWin() or state.isLose():
@@ -250,7 +249,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         # Get Pacman legal moves at the time (current state)
         actions = gameState.getLegalActions(0)
 
-        # Examinating all actions then generate all outcomes
+        # Examining all actions then generating all outcomes
         # Return the best action for Pacman
         for action in actions:
             successor = gameState.generateSuccessor(0, action)
