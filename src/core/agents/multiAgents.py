@@ -413,12 +413,6 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
        proportional to DoF is added. This encourages Pacman to navigate towards 
        open intersections rather than narrow corridors when being hunted.
     """
-    # Terminal states: return a large finite value combined with the game score
-    # to prioritize winning sooner (higher score) rather than winning later.
-    if currentGameState.isWin():
-        return 100000 + currentGameState.getScore()
-    if currentGameState.isLose():
-        return -100000 + currentGameState.getScore()
 
     pos         = currentGameState.getPacmanPosition()
     foodList    = currentGameState.getFood().asList()
@@ -428,80 +422,141 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
 
     score = currentGameState.getScore()
 
-    # BFS from Pacman's position 
-    # Compute 2 metrics simultaneously in a single pass:
-    #   1. Actual maze distance to the closest food (avoids wall-related inaccuracies)
-    #   2. Degrees of Freedom (DoF): number of reachable cells within DOF_RADIUS steps
+    # BFS from Pacman's position
+    # Compute 3 metrics simultaneously in a single pass:
+    #   1. Actual maze distance to the closest food
+    #   2. Degrees of Freedom (DoF): reachable cells within DOF_RADIUS steps
+    #   3. Maze distance to each ghost
     DOF_RADIUS = 5
-    foodSet = set(foodList) if foodList else set()
-    _queue = util.Queue()
-    _queue.push((pos, 0))
-    _visited = {pos}
+
+    queue = util.Queue()
+    queue.push((pos, 0))
+    visited = {pos}
+
+    closest_food_dist = None
     dof = 1
-    _closest_food_dist = None
+    ghost_dists = [-1] * len(ghostStates) 
 
-    while not _queue.isEmpty():
-        _cur, _depth = _queue.pop()
+    while not queue.isEmpty():
+        cur_pos, depth = queue.pop()
 
-        if _closest_food_dist is None and _cur in foodSet:
-            _closest_food_dist = _depth
+        # 1. Check for food
+        if closest_food_dist is None and cur_pos in foodList:
+            closest_food_dist = depth
 
-        # Stop when DoF is fully counted and food is found (or no food left)
-        if _depth >= DOF_RADIUS and (_closest_food_dist is not None or not foodList):
+        # 2. Check for ghosts
+        for i in range(len(ghostStates)):
+            ghost_pos = ghostStates[i].getPosition()
+            ghost_pos_int = (int(ghost_pos[0]), int(ghost_pos[1]))
+            
+            if cur_pos == ghost_pos_int and ghost_dists[i] == -1:
+                ghost_dists[i] = depth
+
+        # 3. Check stopping conditions
+        food_done = False
+        if closest_food_dist is not None or len(foodList) == 0:
+            food_done = True
+            
+        dof_done = False
+        if depth >= DOF_RADIUS:
+            dof_done = True
+            
+        ghosts_done = True
+        for dist in ghost_dists:
+            if dist == -1:
+                ghosts_done = False
+                break
+
+        if food_done and dof_done and ghosts_done:
             break
 
-        for _dx, _dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-            _nx, _ny = _cur[0] + _dx, _cur[1] + _dy
-            _nb = (_nx, _ny)
-            if _nb not in _visited and not walls[_nx][_ny]:
-                _visited.add(_nb)
-                _queue.push((_nb, _depth + 1))
-                if _depth + 1 <= DOF_RADIUS:
+        # 4. Flood fill to 4 directions
+        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            next_x = cur_pos[0] + dx
+            next_y = cur_pos[1] + dy
+            next_pos = (next_x, next_y)
+            
+            if next_pos not in visited and not walls[next_x][next_y]:
+                visited.add(next_pos)
+                queue.push((next_pos, depth + 1))
+                
+                if depth + 1 <= DOF_RADIUS:
                     dof += 1
 
-    if _closest_food_dist is None:
-        _closest_food_dist = 0
+    if closest_food_dist is None:
+        closest_food_dist = 0
 
-    # Food features ─
-    # Reward for being close to food, penalize for having many foods left uneaten
+    # SCORE CALCULATION BASED ON GATHERED METRICS
+    
+    # 1. Food Score
+    # Reward approaching food and penalize having many foods left on the map
     if len(foodList) > 0:
-        score += 10.0 / (_closest_food_dist + 1)
-        score -= 4 * len(foodList)
+        food_distance_bonus = 10.0 / (closest_food_dist + 1)
+        score += food_distance_bonus
+        
+        food_remaining_penalty = 4 * len(foodList)
+        score -= food_remaining_penalty
 
-    # Penalize for remaining capsules
-    score -= 20 * len(capsules)
+    # 2. Capsule Score
+    # Heavily penalize remaining capsules to prioritize eating them early
+    capsule_penalty = 20 * len(capsules)
+    score -= capsule_penalty
 
-    # Ghost features 
-    for ghost in ghostStates:
-        ghostDist = manhattanDistance(pos, ghost.getPosition())
-        if ghost.scaredTimer > 0:
-            score += 200.0 / (ghostDist + 1)
+    # 3. Ghost Score
+    # Penalize getting close to active ghosts, reward approaching scared ghosts
+    for i in range(len(ghostStates)):
+        ghost = ghostStates[i]
+        
+        # Retrieve the accurate distance calculated by BFS above
+        if ghost_dists[i] != -1:
+            ghost_dist = ghost_dists[i]
         else:
-            if ghostDist <= 1:
-                score -= 500
+            ghost_dist = manhattanDistance(pos, ghost.getPosition())
+
+        if ghost.scaredTimer > 0:
+            # Scared ghost -> Pacman is the hunter -> High reward for chasing
+            scared_ghost_bonus = 200.0 / (ghost_dist + 1)
+            score += scared_ghost_bonus
+        else:
+            # Active ghost -> Pacman is the prey -> Penalize to stay away
+            if ghost_dist <= 1:
+                score -= 500  # Imminent death -> Extreme penalty
             else:
-                score -= 2.0 / ghostDist
+                active_ghost_penalty = 2.0 / ghost_dist
+                score -= active_ghost_penalty
 
-    # Entrapment Risk
-    # Low DoF + nearby ghosts = high danger → heavy penalty
-    MAX_DOF = (DOF_RADIUS * 2 + 1) ** 2
-    dof_norm = dof / MAX_DOF
+    # 4. Entrapment Risk - THE SECRET WEAPON OF Q6
+    # Extremely heavy penalty if the space is narrow (low DoF) AND a ghost is nearby
+    MAX_DOF = (DOF_RADIUS * 2 + 1) ** 2  # The most open environment possible
+    
+    # Calculate narrowness (from 0.0 to 1.0, higher means narrower space)
+    dof_ratio = dof / MAX_DOF
+    narrowness_factor = 1.0 - dof_ratio 
 
+    # Calculate Ghost Threat
     THREAT_RADIUS = 6
     ghost_threat = 0.0
-    for ghost in ghostStates:
-        if ghost.scaredTimer == 0:
-            d = manhattanDistance(pos, ghost.getPosition())
-            if d < THREAT_RADIUS:
-                ghost_threat += (THREAT_RADIUS - d)
+    for i in range(len(ghostStates)):
+        ghost = ghostStates[i]
+        if ghost.scaredTimer == 0:  # Only active ghosts are a threat
+            if ghost_dists[i] != -1:
+                dist = ghost_dists[i]
+            else:
+                dist = manhattanDistance(pos, ghost.getPosition())
+                
+            if dist < THREAT_RADIUS:  # If ghost is inside the alert radius
+                ghost_threat += (THREAT_RADIUS - dist)  # Closer ghost -> Higher threat
 
-    entrapment_factor = 1.0 - dof_norm
-    entrapment_risk = ghost_threat * entrapment_factor * 40.0
+    # Total Entrapment Risk: Ghost Threat x Narrowness x Penalty Weight (40)
+    entrapment_risk = ghost_threat * narrowness_factor * 40.0
     score -= entrapment_risk
 
-    # Small reward for open areas when ghosts are nearby (encourages finding an escape route)
+    # 5. Escape Bonus
+    # If threatened by a ghost, prioritize directions with high Degrees of Freedom (DoF)
+    # This guides Pacman towards open intersections to easily escape
     if ghost_threat > 0:
-        score += 0.5 * dof
+        escape_bonus = 0.5 * dof
+        score += escape_bonus
 
     return score
 
