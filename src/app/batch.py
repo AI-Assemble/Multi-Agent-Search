@@ -29,6 +29,7 @@ def _status_details(
     root: Path,
     app_root: Path,
     selected_agent: str,
+    selected_evalFn: str,
     selected_layout: str,
     selected_ghosts: int,
     selected_games: int,
@@ -38,7 +39,7 @@ def _status_details(
     pythonpath: str,
     parallel: int,
 ) -> list[tuple[str, str]]:
-    return [
+    details = [
         ("Launcher mode", "direct args" if provided_any else "interactive menu"),
         ("Repository root", str(root)),
         ("Application root", str(app_root)),
@@ -46,13 +47,20 @@ def _status_details(
         ("Python version", sys.version.split()[0]),
         ("Platform", platform.platform()),
         ("Agent", selected_agent),
+    ]
+    # Only show Evaluation Function for agents that use it
+    if selected_evalFn != "unavailable":
+        details.append(("Evaluation Function", selected_evalFn))
+    
+    details.extend([
         ("Layout", selected_layout),
         ("Ghosts", str(selected_ghosts)),
         ("Games", str(selected_games)),
         ("Parallel", str(parallel)),
         ("Extra args", " ".join(extra) if extra else "<none>"),
         ("PYTHONPATH", pythonpath),
-    ]
+    ])
+    return details
 
 
 def _attempt_display(attempt_number: int, total_attempts: int) -> str:
@@ -107,6 +115,7 @@ def _refresh_batch_console(batch_artifacts: dict[str, object]) -> None:
         total_attempts = int(batch_artifacts["total_attempts"])
         worker_count = int(batch_artifacts["worker_count"])
         selected_agent = str(batch_artifacts["selected_agent"])
+        selected_evalFn = str(batch_artifacts.get("selected_evalFn", "unavailable"))
         selected_layout = str(batch_artifacts["selected_layout"])
         selected_ghosts = int(batch_artifacts["selected_ghosts"])
         log_path = str(batch_artifacts["log_path"])
@@ -145,6 +154,8 @@ def _refresh_batch_console(batch_artifacts: dict[str, object]) -> None:
         print(_paint(instruction, YELLOW))
         print()
         print(f"{_paint('Agent:', GREEN)} {selected_agent}")
+        if selected_evalFn != "unavailable":
+            print(f"{_paint('Evaluation Function:', GREEN)} {selected_evalFn}")
         print(f"{_paint('Layout:', GREEN)} {selected_layout}")
         print(f"{_paint('Ghosts:', GREEN)} {selected_ghosts}")
         print(f"{_paint('Attempts:', GREEN)} {total_attempts}")
@@ -297,6 +308,7 @@ def _create_batch_artifacts(
     app_root: Path,
     python_bin: str,
     selected_agent: str,
+    selected_evalFn: str,
     selected_layout: str,
     selected_ghosts: int,
     total_games: int,
@@ -318,6 +330,7 @@ def _create_batch_artifacts(
         root=root,
         app_root=app_root,
         selected_agent=selected_agent,
+        selected_evalFn=selected_evalFn,
         selected_layout=selected_layout,
         selected_ghosts=selected_ghosts,
         selected_games=total_games,
@@ -372,6 +385,7 @@ def _run_game_attempt(
     app_root: Path,
     python_bin: str,
     selected_agent: str,
+    selected_evalFn: str,
     selected_layout: str,
     selected_ghosts: int,
     extra: list[str],
@@ -399,6 +413,7 @@ def _run_game_attempt(
         root=root,
         app_root=app_root,
         selected_agent=selected_agent,
+        selected_evalFn=selected_evalFn,
         selected_layout=selected_layout,
         selected_ghosts=selected_ghosts,
         selected_games=total_attempts,
@@ -677,6 +692,7 @@ def _run_game_batch(
     app_root: Path,
     python_bin: str,
     selected_agent: str,
+    selected_evalFn: str,
     selected_layout: str,
     selected_ghosts: int,
     total_games: int,
@@ -693,6 +709,7 @@ def _run_game_batch(
         app_root=app_root,
         python_bin=python_bin,
         selected_agent=selected_agent,
+        selected_evalFn=selected_evalFn,
         selected_layout=selected_layout,
         selected_ghosts=selected_ghosts,
         total_games=total_attempts,
@@ -703,6 +720,7 @@ def _run_game_batch(
     batch_artifacts["total_attempts"] = total_attempts
     batch_artifacts["worker_count"] = worker_count
     batch_artifacts["selected_agent"] = selected_agent
+    batch_artifacts["selected_evalFn"] = selected_evalFn
     batch_artifacts["selected_layout"] = selected_layout
     batch_artifacts["selected_ghosts"] = selected_ghosts
     batch_artifacts["wait_for_q_to_return"] = wait_for_q_to_return
@@ -743,6 +761,7 @@ def _run_game_batch(
                     app_root=app_root,
                     python_bin=python_bin,
                     selected_agent=selected_agent,
+                    selected_evalFn=selected_evalFn,
                     selected_layout=selected_layout,
                     selected_ghosts=selected_ghosts,
                     extra=extra,

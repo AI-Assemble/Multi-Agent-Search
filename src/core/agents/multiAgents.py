@@ -501,3 +501,10 @@ def riskAwareEvaluationFunction(currentGameState: GameState):
 
 # Abbreviation
 riskAware = riskAwareEvaluationFunction
+
+# Registry of available evaluation functions for easy discovery and menu selection
+EVALUATION_FUNCTIONS = {
+    'score': scoreEvaluationFunction,
+    'better': betterEvaluationFunction,
+    'riskAware': riskAwareEvaluationFunction,
+}
