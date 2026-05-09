@@ -195,7 +195,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         # TODO Q3: Implement alpha-beta pruning on top of minimax search.
-        # util.raiseNotDefined()
         def alphaBetaValue(state, depth, agentIndex, alpha, beta):
             # 1.Base case
             if depth == self.depth or state.isWin() or state.isLose():
