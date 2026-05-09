@@ -185,7 +185,49 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         # TODO Q4: Implement expectimax with uniformly random ghost actions.
-        util.raiseNotDefined()
+        def expectimax(state, depth, agentIndex):
+            # Dừng duyệt cây lại nếu đã đạt đến độ sâu nhất định hoặc game state là win hoặc over
+            if state.isWin() or state.isLose() or depth == self.depth:
+                return self.evaluationFunction(state)
+
+            legalActions = state.getLegalActions(agentIndex)
+            if not legalActions:
+                return self.evaluationFunction(state)
+
+            nextAgent = agentIndex + 1
+            nextDepth = depth
+
+            # nếu đã duyệt đủ các trạng thái của agent ghost và pacman thì độ sâu của thuật toán sẽ tăng lên 1 và tiếp tục duyệt tiếp
+            if nextAgent == state.getNumAgents():
+                nextAgent = 0
+                nextDepth += 1
+
+            # Đối tượng duyệt hiện tại là pacman thì ta sẽ lấy kết quả max từ hàm đánh giá các trạng thái của pacman
+            if agentIndex == 0:
+                return max(
+                    expectimax(state.generateSuccessor(agentIndex, action), nextDepth, nextAgent)
+                    for action in legalActions
+                )
+
+            # nếu đối tượng hiện tại là ghost thì ta sẽ lấy kết quả trung bình từ hàm đánh giá các trạng thái của ghost
+            totalValue = 0
+            for action in legalActions:
+                successor = state.generateSuccessor(agentIndex, action)
+                totalValue += expectimax(successor, nextDepth, nextAgent)
+            return totalValue / len(legalActions)
+
+        bestAction = None
+        bestValue = float("-inf")
+        
+        #Bắt đầu duyệt cây expectimax đã được thiết kế trên để tìm ra hướng đi cho pacman    
+        for action in gameState.getLegalActions(0):
+            successor = gameState.generateSuccessor(0, action)
+            value = expectimax(successor, 0, 1)
+            if value > bestValue:
+                bestValue = value
+                bestAction = action
+
+        return bestAction
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -195,7 +237,51 @@ def betterEvaluationFunction(currentGameState: GameState):
     DESCRIPTION: <write something here so we know what you did>
     """
     # TODO Q5: Implement the improved state evaluation function for this question.
-    util.raiseNotDefined()
+    
+    #Lấy ra các thông tin về trạng thái hiện tại của game:
+    pacmanPos = currentGameState.getPacmanPosition()
+    foodGrid = currentGameState.getFood()
+    ghostStates = currentGameState.getGhostStates()
+    capsules = currentGameState.getCapsules()
+    foodList = foodGrid.asList()
+    score = currentGameState.getScore()
+    print("origin score: ", score )
+
+    #Cơ chế thưởng phạt để pacman ưu tiên ăn quả nhằm đạt được điểm cao
+    if len(foodList) > 0:
+        foodDistances = [
+            manhattanDistance(pacmanPos, food)
+            for food in foodList
+        ]
+
+        closestFoodDist = min(foodDistances)
+
+        # thưởng khi gần food
+        score += 10.0 / (closestFoodDist + 1)
+
+        # phạt khi còn nhiều food
+        score -= 4 * len(foodList)
+
+    #Cơ chế thưởng phạt để pacman tránh ghost có hướng di chuyển random một cách ổn định nhất
+    for ghost in ghostStates:
+        ghostPos = ghost.getPosition()
+        ghostDist = manhattanDistance(pacmanPos, ghostPos)
+
+        # ghost đang sợ
+        if ghost.scaredTimer > 0:
+            score += 200 / (ghostDist + 1)
+
+        # ghost nguy hiểm
+        else:
+            if ghostDist <= 1:
+                score -= 500
+            else:
+                score -= 2.0 / ghostDist
+    
+    #Phạt nặng khi còn nhiều capsules
+    score -= 20 * len(capsules)
+
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
