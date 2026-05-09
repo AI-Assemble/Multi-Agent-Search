@@ -161,6 +161,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
                     successor = state.generateSuccessor(agentIndex, action)
                     values.append(minimax(successor, nextDepth, nextAgent))
                 return max(values)
+
             # 6.MIN (Ghosts)
             else:
                 values = []
@@ -213,10 +214,6 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             # 4. Get all legal actions of the current agent
             actions = state.getLegalActions(agentIndex)
 
-            # debug
-            if not actions:
-                return self.evaluationFunction(state)
-
             # 5.MAX (Pacman)
             if agentIndex == 0:
                 value = float('-inf')
@@ -239,7 +236,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                     value = min(value, score)
                     beta = min(beta, value)
                     # Pruning
-                    if beta < alpha:
+                    if alpha > beta:
                         break
                 return value
 
