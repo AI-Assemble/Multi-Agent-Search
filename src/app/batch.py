@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
-from .colors import BOLD, CYAN, GREEN, MAGENTA, RESET, YELLOW, _paint
+from .colors import BOLD, CYAN, GREEN, RESET, YELLOW, _paint
 from .fs import _next_available_path, _preview_pythonpath
 from .keys import _KeyReader, _clear_screen
 from .metrics import CSV_FIELDS, _extract_attempt_metrics, _upsert_csv_row
@@ -71,6 +71,12 @@ def _window_title(attempt_number: int, total_attempts: int) -> str:
     return f"Pacman - Attempt {attempt_number}/{total_attempts}"
 
 
+def _format_duration_mm_ss(duration_seconds: float) -> str:
+    total_seconds = max(0, int(duration_seconds))
+    minutes, seconds = divmod(total_seconds, 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
+
 def _create_attempt_state(attempt_number: int, total_attempts: int) -> dict[str, object]:
     return {
         "attempt_display": _attempt_display(attempt_number, total_attempts),
@@ -79,8 +85,7 @@ def _create_attempt_state(attempt_number: int, total_attempts: int) -> dict[str,
         "stdout_lines": 0,
         "stderr_lines": 0,
         "started_at": "",
-        "finished_at": "",
-        "duration_seconds": "",
+        "duration": "",
         "score": "",
         "result": "",
         "return_code": "",
@@ -124,6 +129,7 @@ def _refresh_batch_console(batch_artifacts: dict[str, object]) -> None:
             attempt_number: dict(state)
             for attempt_number, state in batch_artifacts["attempt_states"].items()
         }
+        refresh_started_at = datetime.now()
 
     counts = {"pending": 0, "running": 0, "completed": 0, "failed": 0, "interrupted": 0}
     for state in attempt_states.values():
@@ -173,10 +179,16 @@ def _refresh_batch_console(batch_artifacts: dict[str, object]) -> None:
 
         for attempt_number in range(1, total_attempts + 1):
             state = attempt_states.get(attempt_number, _create_attempt_state(attempt_number, total_attempts))
+            duration_display = str(state.get("duration", ""))
+            if state.get("started_at") and state.get("status") == "running":
+                started_at = datetime.fromisoformat(str(state["started_at"]))
+                duration_display = _format_duration_mm_ss((refresh_started_at - started_at).total_seconds())
             line = (
                 f"[{attempt_number}] {state['status']} | "
                 f"stdout={state.get('stdout_lines', 0)} | stderr={state.get('stderr_lines', 0)}"
             )
+            if duration_display:
+                line += f" | elapsed={duration_display}"
             if state.get("return_code") not in ("", None):
                 line += f" | exit={state['return_code']}"
             if state.get("score"):
@@ -441,6 +453,7 @@ def _run_game_attempt(
 
     if cancel_event.is_set():
         finished_at = started_at
+        duration_display = _format_duration_mm_ss((finished_at - started_at).total_seconds())
         status_label = "interrupted (launcher stop)"
         _update_attempt_state(
             batch_artifacts,
@@ -448,8 +461,7 @@ def _run_game_attempt(
             status=status_label,
             return_code=130,
             started_at=started_at.isoformat(timespec="seconds"),
-            finished_at=finished_at.isoformat(timespec="seconds"),
-            duration_seconds="0.000",
+            duration=duration_display,
         )
         _upsert_csv_row(
             csv_path,
@@ -464,8 +476,7 @@ def _run_game_attempt(
                 "status": status_label,
                 "return_code": 130,
                 "started_at": started_at.isoformat(timespec="seconds"),
-                "finished_at": finished_at.isoformat(timespec="seconds"),
-                "duration_seconds": "0.000",
+                "duration": duration_display,
                 "agent": selected_agent,
                 "layout": selected_layout,
                 "ghosts": selected_ghosts,
@@ -483,7 +494,7 @@ def _run_game_attempt(
             "stdout": "",
             "stderr": "",
             "started_at": started_at,
-            "finished_at": finished_at,
+            "duration": duration_display,
             "interrupted": True,
             "window_title": window_title,
         }
@@ -605,7 +616,7 @@ def _run_game_attempt(
             else "failed"
         )
     metrics = _extract_attempt_metrics(stdout_text)
-    duration_seconds = (finished_at - started_at).total_seconds()
+    duration_display = _format_duration_mm_ss((finished_at - started_at).total_seconds())
 
     _append_text(
         log_path,
@@ -616,7 +627,7 @@ def _run_game_attempt(
                 f"Status: {status_label}",
                 f"Return code: {return_code}",
                 f"Finished: {finished_at.isoformat(timespec='seconds')}",
-                f"Duration seconds: {duration_seconds:.3f}",
+                f"Duration: {duration_display}",
                 f"Score: {metrics['score'] or '<unknown>'}",
                 f"Result: {metrics['result'] or '<unknown>'}",
                 "",
@@ -637,8 +648,7 @@ def _run_game_attempt(
             "status": status_label,
             "return_code": return_code,
             "started_at": started_at.isoformat(timespec="seconds"),
-            "finished_at": finished_at.isoformat(timespec="seconds"),
-            "duration_seconds": f"{duration_seconds:.3f}",
+            "duration": duration_display,
             "agent": selected_agent,
             "layout": selected_layout,
             "ghosts": selected_ghosts,
@@ -652,7 +662,7 @@ def _run_game_attempt(
         status=status_label,
         return_code=return_code,
         finished_at=finished_at.isoformat(timespec="seconds"),
-        duration_seconds=f"{duration_seconds:.3f}",
+        duration=duration_display,
         score=metrics["score"],
         result=metrics["result"],
     )
@@ -671,6 +681,7 @@ def _run_game_attempt(
         "stderr": stderr_text,
         "started_at": started_at,
         "finished_at": finished_at,
+        "duration": duration_display,
         "interrupted": interrupted,
         "window_title": window_title,
     }
