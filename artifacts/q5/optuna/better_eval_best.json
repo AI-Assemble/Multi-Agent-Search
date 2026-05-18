@@ -1,0 +1,498 @@
+{
+  "study_name": "better-eval",
+  "search_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "validation_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "best_trial_number": 903,
+  "best_mean_score": 1344.3,
+  "best_params": {
+    "food_closeness_reward": 2.2659570275419276,
+    "remaining_food_penalty": 1.202502401549984,
+    "scared_ghost_reward": 498.21892590747916,
+    "dangerous_ghost_collision_penalty": 185.56383262118132,
+    "dangerous_ghost_distance_penalty": 1.2272862189853433,
+    "remaining_capsule_penalty": 17.075290355466766
+  },
+  "validation": {
+    "mean_score": 1344.3,
+    "win_rate": 1.0,
+    "min_score": 1325.0,
+    "max_score": 1360.0,
+    "scores": [
+      1332.0,
+      1341.0,
+      1325.0,
+      1360.0,
+      1343.0,
+      1358.0,
+      1347.0,
+      1340.0,
+      1352.0,
+      1345.0
+    ],
+    "played_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "completed_games": 10,
+    "game_results": [
+      {
+        "seed": 0,
+        "score": 1332.0,
+        "win": true,
+        "move_count": 235,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 1,
+        "score": 1341.0,
+        "win": true,
+        "move_count": 217,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 2,
+        "score": 1325.0,
+        "win": true,
+        "move_count": 249,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 3,
+        "score": 1360.0,
+        "win": true,
+        "move_count": 179,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 4,
+        "score": 1343.0,
+        "win": true,
+        "move_count": 213,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 5,
+        "score": 1358.0,
+        "win": true,
+        "move_count": 183,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 6,
+        "score": 1347.0,
+        "win": true,
+        "move_count": 205,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 7,
+        "score": 1340.0,
+        "win": true,
+        "move_count": 219,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 8,
+        "score": 1352.0,
+        "win": true,
+        "move_count": 195,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      },
+      {
+        "seed": 9,
+        "score": 1345.0,
+        "win": true,
+        "move_count": 209,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      }
+    ]
+  },
+  "baseline_comparison": {
+    "baseline_weights": {
+      "food_closeness_reward": 10.0,
+      "remaining_food_penalty": 4.0,
+      "scared_ghost_reward": 200.0,
+      "dangerous_ghost_collision_penalty": 500.0,
+      "dangerous_ghost_distance_penalty": 2.0,
+      "remaining_capsule_penalty": 20.0
+    },
+    "optimized_weights": {
+      "food_closeness_reward": 2.2659570275419276,
+      "remaining_food_penalty": 1.202502401549984,
+      "scared_ghost_reward": 498.21892590747916,
+      "dangerous_ghost_collision_penalty": 185.56383262118132,
+      "dangerous_ghost_distance_penalty": 1.2272862189853433,
+      "remaining_capsule_penalty": 17.075290355466766
+    },
+    "baseline_validation": {
+      "mean_score": 1281.9,
+      "win_rate": 1.0,
+      "min_score": 1127.0,
+      "max_score": 1362.0,
+      "scores": [
+        1274.0,
+        1127.0,
+        1362.0,
+        1333.0,
+        1362.0,
+        1149.0,
+        1359.0,
+        1322.0,
+        1294.0,
+        1237.0
+      ],
+      "played_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "completed_games": 10,
+      "game_results": [
+        {
+          "seed": 0,
+          "score": 1274.0,
+          "win": true,
+          "move_count": 351,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 1,
+          "score": 1127.0,
+          "win": true,
+          "move_count": 245,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 2,
+          "score": 1362.0,
+          "win": true,
+          "move_count": 175,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 3,
+          "score": 1333.0,
+          "win": true,
+          "move_count": 233,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 4,
+          "score": 1362.0,
+          "win": true,
+          "move_count": 175,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 5,
+          "score": 1149.0,
+          "win": true,
+          "move_count": 601,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 6,
+          "score": 1359.0,
+          "win": true,
+          "move_count": 181,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 7,
+          "score": 1322.0,
+          "win": true,
+          "move_count": 255,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 8,
+          "score": 1294.0,
+          "win": true,
+          "move_count": 311,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 9,
+          "score": 1237.0,
+          "win": true,
+          "move_count": 425,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        }
+      ]
+    },
+    "optimized_validation": {
+      "mean_score": 1344.3,
+      "win_rate": 1.0,
+      "min_score": 1325.0,
+      "max_score": 1360.0,
+      "scores": [
+        1332.0,
+        1341.0,
+        1325.0,
+        1360.0,
+        1343.0,
+        1358.0,
+        1347.0,
+        1340.0,
+        1352.0,
+        1345.0
+      ],
+      "played_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "completed_games": 10,
+      "game_results": [
+        {
+          "seed": 0,
+          "score": 1332.0,
+          "win": true,
+          "move_count": 235,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 1,
+          "score": 1341.0,
+          "win": true,
+          "move_count": 217,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 2,
+          "score": 1325.0,
+          "win": true,
+          "move_count": 249,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 3,
+          "score": 1360.0,
+          "win": true,
+          "move_count": 179,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 4,
+          "score": 1343.0,
+          "win": true,
+          "move_count": 213,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 5,
+          "score": 1358.0,
+          "win": true,
+          "move_count": 183,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 6,
+          "score": 1347.0,
+          "win": true,
+          "move_count": 205,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 7,
+          "score": 1340.0,
+          "win": true,
+          "move_count": 219,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 8,
+          "score": 1352.0,
+          "win": true,
+          "move_count": 195,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        },
+        {
+          "seed": 9,
+          "score": 1345.0,
+          "win": true,
+          "move_count": 209,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        }
+      ]
+    },
+    "mean_score_delta": 62.399999999999864,
+    "win_rate_delta": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "optimized_score": 1332.0,
+        "baseline_score": 1274.0,
+        "score_delta": 58.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 235,
+        "baseline_move_count": 351
+      },
+      {
+        "seed": 1,
+        "optimized_score": 1341.0,
+        "baseline_score": 1127.0,
+        "score_delta": 214.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 217,
+        "baseline_move_count": 245
+      },
+      {
+        "seed": 2,
+        "optimized_score": 1325.0,
+        "baseline_score": 1362.0,
+        "score_delta": -37.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 249,
+        "baseline_move_count": 175
+      },
+      {
+        "seed": 3,
+        "optimized_score": 1360.0,
+        "baseline_score": 1333.0,
+        "score_delta": 27.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 179,
+        "baseline_move_count": 233
+      },
+      {
+        "seed": 4,
+        "optimized_score": 1343.0,
+        "baseline_score": 1362.0,
+        "score_delta": -19.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 213,
+        "baseline_move_count": 175
+      },
+      {
+        "seed": 5,
+        "optimized_score": 1358.0,
+        "baseline_score": 1149.0,
+        "score_delta": 209.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 183,
+        "baseline_move_count": 601
+      },
+      {
+        "seed": 6,
+        "optimized_score": 1347.0,
+        "baseline_score": 1359.0,
+        "score_delta": -12.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 205,
+        "baseline_move_count": 181
+      },
+      {
+        "seed": 7,
+        "optimized_score": 1340.0,
+        "baseline_score": 1322.0,
+        "score_delta": 18.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 219,
+        "baseline_move_count": 255
+      },
+      {
+        "seed": 8,
+        "optimized_score": 1352.0,
+        "baseline_score": 1294.0,
+        "score_delta": 58.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 195,
+        "baseline_move_count": 311
+      },
+      {
+        "seed": 9,
+        "optimized_score": 1345.0,
+        "baseline_score": 1237.0,
+        "score_delta": 108.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 209,
+        "baseline_move_count": 425
+      }
+    ]
+  }
+}

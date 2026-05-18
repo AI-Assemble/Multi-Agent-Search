@@ -1,0 +1,2 @@
+trial,state,objective_value,mean_score,win_rate,min_score,max_score,played_seeds,game_results,food_closeness_reward,remaining_food_penalty,scared_ghost_reward,dangerous_ghost_collision_penalty,dangerous_ghost_distance_penalty,remaining_capsule_penalty
+0,TrialState.COMPLETE,1274.0,1274.0,1.0,1274.0,1274.0,[0],"[{""seed"": 0, ""score"": 1274.0, ""win"": true, ""move_count"": 351, ""remaining_food"": 0, ""remaining_capsules"": 0}]",10.0,4.0,200.0,500.0,2.0,20.0

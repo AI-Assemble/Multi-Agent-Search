@@ -1,4 +1,4 @@
-# multiAgents.py
+﻿# multiAgents.py
 # --------------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -338,14 +338,50 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         return bestAction
 
+BETTER_EVAL_DEFAULT_WEIGHTS = {
+     "food_closeness_reward": 2.2659570275419276,
+  "remaining_food_penalty": 1.202502401549984,
+  "scared_ghost_reward": 498.21892590747916,
+  "dangerous_ghost_collision_penalty": 185.56383262118132,
+  "dangerous_ghost_distance_penalty": 1.2272862189853433,
+  "remaining_capsule_penalty": 17.075290355466766
+
+}
+
+BETTER_EVAL_WEIGHTS = BETTER_EVAL_DEFAULT_WEIGHTS.copy()
+
+
+def get_better_eval_weights():
+    return BETTER_EVAL_WEIGHTS.copy()
+
+
+def set_better_eval_weights(weights = None):
+    global BETTER_EVAL_WEIGHTS
+
+    BETTER_EVAL_WEIGHTS = BETTER_EVAL_DEFAULT_WEIGHTS.copy()
+    if weights is None:
+        return get_better_eval_weights()
+
+    for name, value in weights.items():
+        if name not in BETTER_EVAL_WEIGHTS:
+            raise KeyError(f"Unknown betterEvaluationFunction weight: {name}")
+        BETTER_EVAL_WEIGHTS[name] = float(value)
+
+    return get_better_eval_weights()
+
+
 def betterEvaluationFunction(currentGameState: GameState):
     """
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+    A weighted heuristic built on top of the game score. It rewards moving
+    closer to food, penalizes leaving food and capsules on the board, rewards
+    nearby scared ghosts, and strongly discourages standing next to active
+    ghosts. The weights live in a module-level configuration so they can be
+    tuned automatically with Optuna.
     """
-    # TODO Q5: Implement the improved state evaluation function for this question.
     
     #Lấy ra các thông tin về trạng thái hiện tại của game:
     pacmanPos = currentGameState.getPacmanPosition()
@@ -354,7 +390,7 @@ def betterEvaluationFunction(currentGameState: GameState):
     capsules = currentGameState.getCapsules()
     foodList = foodGrid.asList()
     score = currentGameState.getScore()
-    print("origin score: ", score )
+    weights = BETTER_EVAL_WEIGHTS
 
     #Cơ chế thưởng phạt để pacman ưu tiên ăn quả nhằm đạt được điểm cao
     if len(foodList) > 0:
@@ -366,10 +402,10 @@ def betterEvaluationFunction(currentGameState: GameState):
         closestFoodDist = min(foodDistances)
 
         # thưởng khi gần food
-        score += 10.0 / (closestFoodDist + 1)
+        score += weights['food_closeness_reward'] / (closestFoodDist + 1)
 
         # phạt khi còn nhiều food
-        score -= 4 * len(foodList)
+        score -= weights['remaining_food_penalty'] * len(foodList)
 
     #Cơ chế thưởng phạt để pacman tránh ghost có hướng di chuyển random một cách ổn định nhất
     for ghost in ghostStates:
@@ -378,17 +414,17 @@ def betterEvaluationFunction(currentGameState: GameState):
 
         # ghost đang sợ
         if ghost.scaredTimer > 0:
-            score += 200 / (ghostDist + 1)
+            score += weights['scared_ghost_reward'] / (ghostDist + 1)
 
         # ghost nguy hiểm
         else:
             if ghostDist <= 1:
-                score -= 500
+                score -= weights['dangerous_ghost_collision_penalty']
             else:
-                score -= 2.0 / ghostDist
+                score -= weights['dangerous_ghost_distance_penalty'] / ghostDist
     
     #Phạt nặng khi còn nhiều capsules
-    score -= 20 * len(capsules)
+    score -= weights['remaining_capsule_penalty'] * len(capsules)
 
     return score
 
