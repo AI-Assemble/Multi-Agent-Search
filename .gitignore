@@ -308,3 +308,6 @@ http-client.private.env.json
 .idea/**/copilot.data.migration.*.xml
 
 /.vendor/
+gradescope_response.json
+edx_response.html
+edx_grade

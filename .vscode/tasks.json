@@ -165,6 +165,21 @@
             },
             "group": "test",
             "problemMatcher": []
+        },
+        {
+            "label": "Register: Grade (Gradescope + edX)",
+            "type": "process",
+            "command": "task",
+            "args": [
+                "grade:register"
+            ],
+            "options": {
+                "env": {
+                    "PYTHON_BIN": "${command:python.interpreterPath}"
+                }
+            },
+            "group": "test",
+            "problemMatcher": []
         }
     ]
 }

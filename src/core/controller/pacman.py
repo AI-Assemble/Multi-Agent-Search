@@ -282,7 +282,7 @@ class ClassicGameRules:
         self.timeout = timeout
 
     def newGame(self, layout, pacmanAgent, ghostAgents, display, quiet=False, catchExceptions=False):
-        agents = [pacmanAgent] + ghostAgents[:layout.getNumGhosts()]
+        agents = [pacmanAgent] + ghostAgents
         initState = GameState()
         initState.initialize(layout, len(ghostAgents))
         game = Game(agents, display, self, catchExceptions=catchExceptions)

@@ -527,14 +527,23 @@ class GameStateData:
 
         self.agentStates = []
         numGhosts = 0
+        lastGhostPos = None
         for isPacman, pos in layout.agentPositions:
             if not isPacman:
                 if numGhosts == numGhostAgents:
                     continue  # Max ghosts reached already
                 else:
                     numGhosts += 1
+                lastGhostPos = pos
             self.agentStates.append(AgentState(
                 Configuration(pos, Directions.STOP), isPacman))
+        
+        # Bypass layout limits: if we need more ghosts, spawn them at the last known ghost pos
+        while numGhosts < numGhostAgents and lastGhostPos is not None:
+            self.agentStates.append(AgentState(
+                Configuration(lastGhostPos, Directions.STOP), False))
+            numGhosts += 1
+            
         self._eaten = [False for a in self.agentStates]
 
 

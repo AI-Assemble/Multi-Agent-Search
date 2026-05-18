@@ -1,0 +1,81 @@
+name: CI Registered Grade
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  grade-register:
+    if: ${{ !(github.event_name == 'push' && startsWith(github.event.head_commit.message, '[skip ci]')) && !(github.event_name == 'pull_request' && startsWith(github.event.pull_request.title, '[skip ci]')) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: |
+          python -m pip install --upgrade pip
+          pip install uv
+
+      - name: Install dependencies
+        run: |
+          uv sync --group dev
+
+      - name: Install Task runner
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          task --version
+
+      - name: Run registered grade
+        env:
+          PYTHONUNBUFFERED: "1"
+          PYTHON_BIN: "python"
+        run: |
+          task grade:register
+
+      - name: Upload grade artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registered-grade-output
+          path: |
+            gradescope_response.json
+            edx_response.html
+            edx_grade
+          if-no-files-found: warn
+
+  deploy-grade-html:
+    needs: grade-register
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download grade artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: registered-grade-output
+          path: registered-grade
+
+      - name: Prepare publish dir
+        run: |
+          mkdir -p publish
+          if [ -f registered-grade/edx_response.html ]; then cp registered-grade/edx_response.html publish/index.html; else echo "No edx_response.html found"; fi
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish
