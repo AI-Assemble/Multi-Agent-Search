@@ -1,0 +1,57 @@
+{
+  "study_name": "better-eval",
+  "direction": "maximize",
+  "layout": "smallClassic",
+  "depth": 2,
+  "ghosts": 1,
+  "timeout": 30,
+  "search_seeds": [
+    0
+  ],
+  "validation_seeds": [
+    0
+  ],
+  "trial_count": 1,
+  "trials": [
+    {
+      "trial": 0,
+      "state": "TrialState.COMPLETE",
+      "objective_value": 1274.0,
+      "params": {
+        "food_closeness_reward": 10.0,
+        "remaining_food_penalty": 4.0,
+        "scared_ghost_reward": 200.0,
+        "dangerous_ghost_collision_penalty": 500.0,
+        "dangerous_ghost_distance_penalty": 2.0,
+        "remaining_capsule_penalty": 20.0
+      },
+      "metrics": {
+        "game_results": [
+          {
+            "seed": 0,
+            "score": 1274.0,
+            "win": true,
+            "move_count": 351,
+            "remaining_food": 0,
+            "remaining_capsules": 0
+          }
+        ],
+        "played_seeds": [
+          0
+        ],
+        "completed_games": 1,
+        "current_mean_score": 1274.0,
+        "mean_score": 1274.0,
+        "win_rate": 1.0,
+        "min_score": 1274.0,
+        "max_score": 1274.0,
+        "scores": [
+          1274.0
+        ]
+      },
+      "intermediate_values": {
+        "1": 1274.0
+      }
+    }
+  ]
+}

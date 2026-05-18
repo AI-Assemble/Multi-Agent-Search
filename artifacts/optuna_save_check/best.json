@@ -1,0 +1,108 @@
+{
+  "study_name": "better-eval",
+  "search_seeds": [
+    0
+  ],
+  "validation_seeds": [
+    0
+  ],
+  "best_trial_number": 0,
+  "best_mean_score": 1274.0,
+  "best_params": {
+    "food_closeness_reward": 10.0,
+    "remaining_food_penalty": 4.0,
+    "scared_ghost_reward": 200.0,
+    "dangerous_ghost_collision_penalty": 500.0,
+    "dangerous_ghost_distance_penalty": 2.0,
+    "remaining_capsule_penalty": 20.0
+  },
+  "validation": {
+    "mean_score": 1274.0,
+    "win_rate": 1.0,
+    "min_score": 1274.0,
+    "max_score": 1274.0,
+    "scores": [
+      1274.0
+    ],
+    "game_results": [
+      {
+        "seed": 0,
+        "score": 1274.0,
+        "win": true,
+        "move_count": 351,
+        "remaining_food": 0,
+        "remaining_capsules": 0
+      }
+    ]
+  },
+  "baseline_comparison": {
+    "baseline_weights": {
+      "food_closeness_reward": 10.0,
+      "remaining_food_penalty": 4.0,
+      "scared_ghost_reward": 200.0,
+      "dangerous_ghost_collision_penalty": 500.0,
+      "dangerous_ghost_distance_penalty": 2.0,
+      "remaining_capsule_penalty": 20.0
+    },
+    "optimized_weights": {
+      "food_closeness_reward": 10.0,
+      "remaining_food_penalty": 4.0,
+      "scared_ghost_reward": 200.0,
+      "dangerous_ghost_collision_penalty": 500.0,
+      "dangerous_ghost_distance_penalty": 2.0,
+      "remaining_capsule_penalty": 20.0
+    },
+    "baseline_validation": {
+      "mean_score": 1274.0,
+      "win_rate": 1.0,
+      "min_score": 1274.0,
+      "max_score": 1274.0,
+      "scores": [
+        1274.0
+      ],
+      "game_results": [
+        {
+          "seed": 0,
+          "score": 1274.0,
+          "win": true,
+          "move_count": 351,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        }
+      ]
+    },
+    "optimized_validation": {
+      "mean_score": 1274.0,
+      "win_rate": 1.0,
+      "min_score": 1274.0,
+      "max_score": 1274.0,
+      "scores": [
+        1274.0
+      ],
+      "game_results": [
+        {
+          "seed": 0,
+          "score": 1274.0,
+          "win": true,
+          "move_count": 351,
+          "remaining_food": 0,
+          "remaining_capsules": 0
+        }
+      ]
+    },
+    "mean_score_delta": 0.0,
+    "win_rate_delta": 0.0,
+    "per_seed": [
+      {
+        "seed": 0,
+        "optimized_score": 1274.0,
+        "baseline_score": 1274.0,
+        "score_delta": 0.0,
+        "optimized_win": true,
+        "baseline_win": true,
+        "optimized_move_count": 351,
+        "baseline_move_count": 351
+      }
+    ]
+  }
+}
